@@ -231,6 +231,10 @@ int posixly_correct = 1;	/* Non-zero means posix.2 superset. */
 int posixly_correct = 0;	/* Non-zero means posix.2 superset. */
 #endif
 
+#if defined (SGSH)
+int sgsh = 0;
+#endif
+
 /* Some long-winded argument names.  These are obviously new. */
 #define Int 1
 #define Charp 2
@@ -264,6 +268,9 @@ static const struct {
   { "version", Int, &do_version, (char **)0x0 },
 #if defined (WORDEXP_OPTION)
   { "wordexp", Int, &wordexp_only, (char **)0x0 },
+#endif
+#if defined (SGSH)
+  { "sgsh", Int, &sgsh, (char **)0x0 },
 #endif
   { (char *)0x0, Int, (int *)0x0, (char **)0x0 }
 };
