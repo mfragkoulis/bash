@@ -112,7 +112,13 @@
      LESS_GREATER = 301,
      GREATER_BAR = 302,
      BAR_AND = 303,
+#if defined (SGSH)
+     yacc_EOF = 304,
+     SGSH_START = 305,
+     SGSH_END = 306
+#else
      yacc_EOF = 304
+#endif
    };
 #endif
 /* Tokens.  */
@@ -164,6 +170,10 @@
 #define BAR_AND 303
 #define yacc_EOF 304
 
+#if defined (SGSH)
+#define SGSH_START 305
+#define SGSH_END 306
+#endif
 
 
 
@@ -935,7 +945,11 @@ static const char *const yytname[] =
   "case_clause_sequence", "pattern", "list", "compound_list", "list0",
   "list1", "simple_list_terminator", "list_terminator", "newline_list",
   "simple_list", "simple_list1", "pipeline_command", "pipeline",
+#if defined (SGSH)
+  "timespec", 0, "SGSH_START", "SGSH_END" 
+#else
   "timespec", 0
+#endif
 };
 #endif
 
@@ -4419,6 +4433,10 @@ STRING_INT_ALIST word_token_alist[] = {
 #if defined (COND_COMMAND)
   { "[[", COND_START },
   { "]]", COND_END },
+#endif
+#if defined (SGSH)
+  { "{{", SGSH_START },
+  { "}}", SGSH_END },
 #endif
 #if defined (COPROCESS_SUPPORT)
   { "coproc", COPROC },

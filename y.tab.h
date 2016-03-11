@@ -85,7 +85,13 @@
      LESS_GREATER = 301,
      GREATER_BAR = 302,
      BAR_AND = 303,
+#if defined (SGSH)
+     yacc_EOF = 304,
+     SGSH_START = 305,
+     SGSH_END = 306
+#else
      yacc_EOF = 304
+#endif
    };
 #endif
 /* Tokens.  */
@@ -137,7 +143,10 @@
 #define BAR_AND 303
 #define yacc_EOF 304
 
-
+#if defined (SGSH)
+#define SGSH_START 305
+#define SGSH_END 306
+#endif
 
 
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
