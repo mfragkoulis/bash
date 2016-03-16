@@ -363,6 +363,7 @@ static REDIRECTEE redir;
 %type <command> for_command select_command case_command group_command
 %type <command> arith_command
 %type <command> cond_command
+%type <command> sgsh_command
 %type <command> arith_for_command
 %type <command> coproc
 %type <command> function_def function_body if_command elif_clause subshell
@@ -779,6 +780,8 @@ shell_command:	for_command
 	|	cond_command
 			{ $$ = $1; }
 	|	arith_for_command
+			{ $$ = $1; }
+	|	sgsh_command
 			{ $$ = $1; }
 	;
 
