@@ -1013,7 +1013,11 @@ group_command:	'{' compound_list '}'
 	;
 
 sgsh_command:   SGSH_START compound_list SGSH_END
-			{ $$ = make_group_command ($2); }
+			{ 
+			  printf("sgsh command\n");
+			  $$ = make_group_command ($2);
+			  
+			}
 
 arith_command:	ARITH_CMD
 			{ $$ = make_arith_command ($1); }
