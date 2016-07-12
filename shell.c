@@ -231,6 +231,10 @@ int posixly_correct = 1;	/* Non-zero means posix.2 superset. */
 int posixly_correct = 0;	/* Non-zero means posix.2 superset. */
 #endif
 
+#if defined (SGSH)
+int sgsh = 0;
+#endif
+
 /* Some long-winded argument names.  These are obviously new. */
 #define Int 1
 #define Charp 2
@@ -264,6 +268,9 @@ static const struct {
   { "version", Int, &do_version, (char **)0x0 },
 #if defined (WORDEXP_OPTION)
   { "wordexp", Int, &wordexp_only, (char **)0x0 },
+#endif
+#if defined (SGSH)
+  { "sgsh", Int, &sgsh, (char **)0x0 },
 #endif
   { (char *)0x0, Int, (int *)0x0, (char **)0x0 }
 };
@@ -507,6 +514,7 @@ main (argc, argv, env)
 	  report_error (_("%s: option requires an argument"), "-c");
 	  exit (EX_BADUSAGE);
 	}
+      printf("command: %s\n", command_execution_string);
       arg_index++;
     }
   this_command_name = (char *)NULL;
@@ -692,6 +700,7 @@ main (argc, argv, env)
 
 #if defined (ONESHOT)
       executing = 1;
+      printf("handle command\n");
       run_one_command (command_execution_string);
       exit_shell (last_command_exit_value);
 #else /* ONESHOT */
@@ -808,7 +817,7 @@ parse_long_options (argv, arg_start, arg_end)
 
       arg_index++;
     }
-
+  printf("sgsh: %d\n", sgsh);
   return (arg_index);
 }
 
@@ -907,6 +916,7 @@ void
 exit_shell (s)
      int s;
 {
+  printf("exit shell");
   fflush (stdout);		/* XXX */
   fflush (stderr);
 
@@ -1345,6 +1355,7 @@ run_one_command (command)
 	  command_error ("run_one_command", CMDERR_BADJUMP, code, 0);
 	}
     }
+   printf("parse and execute\n");
    return (parse_and_execute (savestring (command), "-c", SEVAL_NOHIST));
 }
 #endif /* ONESHOT */

@@ -343,6 +343,7 @@ static REDIRECTEE redir;
 %token IF THEN ELSE ELIF FI CASE ESAC FOR SELECT WHILE UNTIL DO DONE FUNCTION COPROC
 %token COND_START COND_END COND_ERROR
 %token IN BANG TIME TIMEOPT TIMEIGN
+%token SGSH_START SGSH_END
 
 /* More general tokens. yylex () knows how to make these. */
 %token <word> WORD ASSIGNMENT_WORD REDIR_WORD
@@ -362,6 +363,7 @@ static REDIRECTEE redir;
 %type <command> for_command select_command case_command group_command
 %type <command> arith_command
 %type <command> cond_command
+%type <command> sgsh_command
 %type <command> arith_for_command
 %type <command> coproc
 %type <command> function_def function_body if_command elif_clause subshell
@@ -779,6 +781,8 @@ shell_command:	for_command
 			{ $$ = $1; }
 	|	arith_for_command
 			{ $$ = $1; }
+	|	sgsh_command
+			{ $$ = $1; }
 	;
 
 for_command:	FOR WORD newline_list DO compound_list DONE
@@ -1007,6 +1011,9 @@ if_command:	IF compound_list THEN compound_list FI
 group_command:	'{' compound_list '}'
 			{ $$ = make_group_command ($2); }
 	;
+
+sgsh_command:   SGSH_START compound_list SGSH_END
+			{ $$ = make_group_command ($2); }
 
 arith_command:	ARITH_CMD
 			{ $$ = make_arith_command ($1); }
@@ -2108,6 +2115,10 @@ STRING_INT_ALIST word_token_alist[] = {
   { "[[", COND_START },
   { "]]", COND_END },
 #endif
+#if defined (SGSH)
+  { "{{", SGSH_START },
+  { "}}", SGSH_END },
+#endif
 #if defined (COPROCESS_SUPPORT)
   { "coproc", COPROC },
 #endif
@@ -2715,6 +2726,10 @@ static int open_brace_count;
 		parser_state &= ~(PST_CONDCMD|PST_CONDEXPR); \
 	      else if (word_token_alist[i].token == COND_START) \
 		parser_state |= PST_CONDCMD; \
+	      else if (word_token_alist[i].token == SGSH_END) \
+		parser_state &= ~(PST_SGSH|PST_SGSHEXPR); \
+	      else if (word_token_alist[i].token == SGSH_START) \
+		parser_state |= PST_SGSHEXPR; \
 	      else if (word_token_alist[i].token == '{') \
 		open_brace_count++; \
 	      else if (word_token_alist[i].token == '}' && open_brace_count) \
