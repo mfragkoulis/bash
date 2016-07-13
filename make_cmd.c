@@ -188,6 +188,7 @@ make_command (type, pointer)
   temp->value.Simple = pointer;
   temp->value.Simple->flags = temp->flags = 0;
   temp->redirects = (REDIRECT *)NULL;
+  printf("%s\n", __func__);
   return (temp);
 }
 
@@ -202,6 +203,7 @@ command_connect (com1, com2, connector)
   temp->connector = connector;
   temp->first = com1;
   temp->second = com2;
+  printf("%s\n", __func__);
   return (make_command (cm_connection, (SIMPLE_COM *)temp));
 }
 
@@ -356,6 +358,7 @@ make_group_command (command)
 
   temp = (GROUP_COM *)xmalloc (sizeof (GROUP_COM));
   temp->command = command;
+  printf("%s\n", __func__);
   return (make_command (cm_group, (SIMPLE_COM *)temp));
 }
 

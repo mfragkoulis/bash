@@ -235,6 +235,7 @@ parse_command ()
     }
 
   current_command_line_count = 0;
+  printf("%s: go yyparse()\n", __func__);
   r = yyparse ();
 
   if (need_here_doc)

@@ -121,6 +121,7 @@ parse_prologue (string, flags, tag)
   char *orig_string, *lastcom;
   int x;
 
+  printf("%s: %s\n", __func__, string);
   orig_string = string;
   /* Unwind protect this invocation of parse_and_execute (). */
   begin_unwind_frame (tag);
@@ -229,6 +230,7 @@ parse_and_execute (string, from_file, flags)
   with_input_from_string (string, from_file);
   while (*(bash_input.location.string))
     {
+      printf("%s: while\n", __func__);
       command = (COMMAND *)NULL;
 
       if (interrupt_state)
@@ -384,8 +386,11 @@ parse_and_execute (string, from_file, flags)
 		  last_result = (r < 0) ? EXECUTION_FAILURE : EXECUTION_SUCCESS;
 		}
 	      else
-		last_result = execute_command_internal
+	        {
+		  printf("go execute command internal\n");
+		  last_result = execute_command_internal
 				(command, 0, NO_PIPE, NO_PIPE, bitmap);
+		}
 	      dispose_command (command);
 	      dispose_fd_bitmap (bitmap);
 	      discard_unwind_frame ("pe_dispose");
@@ -452,6 +457,8 @@ parse_string (string, from_file, flags, endp)
   COMMAND *volatile command, *oglobal;
   char *ostring;
   volatile sigset_t ps_sigmask;
+
+  printf("%s: %s\n", __func__, string);
 
   parse_prologue (string, flags, PS_TAG);
 
