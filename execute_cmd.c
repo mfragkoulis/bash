@@ -544,6 +544,8 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
   volatile char *ofifo_list;
 #endif
 
+  printf("%s: pipe_in: %d, pipe_out: %d\n", __func__, pipe_in, pipe_out);
+
   if (breaking || continuing)
     return (last_command_exit_value);
   if (command == 0 || read_but_dont_execute)
@@ -898,6 +900,7 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
       break;
 
     case cm_group:
+      printf("%s(): cm_group case\n", __func__);
 
       /* This code can be executed from either of two paths: an explicit
 	 '{}' command, or via a function call.  If we are executed via a
@@ -2267,6 +2270,8 @@ execute_pipeline (command, asynchronous, pipe_in, pipe_out, fds_to_close)
   COMMAND *cmd;
   struct fd_bitmap *fd_bitmap;
   pid_t lastpid;
+
+  printf("%s: pipe_in: %d, pipe_out: %d\n", __func__, pipe_in, pipe_out);
 
 #if defined (JOB_CONTROL)
   sigset_t set, oset;
