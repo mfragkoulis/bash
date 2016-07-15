@@ -916,7 +916,7 @@ void
 exit_shell (s)
      int s;
 {
-  printf("exit shell\n");
+  printf("exit shell: status %d\n", s);
   fflush (stdout);		/* XXX */
   fflush (stderr);
 

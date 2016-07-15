@@ -59,6 +59,11 @@ extern int errno;
 
 #define NEED_FPURGE_DECL
 
+#if defined (SGSH)
+#include <sys/socket.h>		/* socketpair(), AF_UNIX, SOCK_DGRAM */
+extern int sgsh;
+#endif
+
 #include "bashansi.h"
 #include "bashintl.h"
 
@@ -334,6 +339,7 @@ close_fd_bitmap (fdbp)
       for (i = 0; i < fdbp->size; i++)
 	if (fdbp->bitmap[i])
 	  {
+	    printf("%d: %s: close fd %d\n", (int)getpid(), __func__, i);
 	    close (i);
 	    fdbp->bitmap[i] = 0;
 	  }
@@ -776,7 +782,7 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 
   QUIT;
 
-  printf("%s: command type: %d\n", __func__, command->type);
+  printf("%s: command type: %d\n\n", __func__, command->type);
   switch (command->type)
     {
     case cm_simple:
@@ -2289,6 +2295,7 @@ execute_pipeline (command, asynchronous, pipe_in, pipe_out, fds_to_close)
   COMMAND *cmd;
   struct fd_bitmap *fd_bitmap;
   pid_t lastpid;
+  int re;
 
   printf("%s: pipe_in: %d, pipe_out: %d\n", __func__, pipe_in, pipe_out);
 
@@ -2306,11 +2313,15 @@ execute_pipeline (command, asynchronous, pipe_in, pipe_out, fds_to_close)
 	 cmd->value.Connection && cmd->value.Connection->connector == '|')
     {
       /* Make a pipeline between the two commands. */
-#if defined (SGSH)
-      if (socketpair (AF_UNIX, SOCK_DGRAM, 0, fildes) < 0)
-#else
-      if (pipe (fildes) < 0)
-#endif
+      if (sgsh)
+	{
+        re = socketpair (AF_UNIX, SOCK_DGRAM, 0, fildes);
+	printf("%s: Created socketpair %d -- %d\n",
+			__func__, fildes[0], fildes[1]);
+	}
+      else
+        re = pipe (fildes);
+      if (re < 0)
 	{
 	  sys_error (_("pipe error"));
 #if defined (JOB_CONTROL)
@@ -3905,6 +3916,8 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
      int pipe_in, pipe_out, async;
      struct fd_bitmap *fds_to_close;
 {
+  printf("%d: %s: pipe_in: %d, pipe_out: %d\n",
+		  (int)getpid(), __func__, pipe_in, pipe_out);
   WORD_LIST *words, *lastword;
   char *command_line, *lastarg, *temp;
   int first_word_quoted, result, builtin_is_special, already_forked, dofork;
@@ -3969,8 +3982,22 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 	(simple_command->words->word->word[0] == '%'))
     dofork = 0;
 
+  printf("%d: %s: dofork: %d\n", (int)getpid(), __func__, dofork);
   if (dofork)
     {
+
+      if (sgsh)
+        {
+          if (pipe_in > 0)
+	    putenv("SGSH_IN=1");
+	  else
+	    putenv("SGSH_IN=0");
+	  if (pipe_out == 0 || pipe_out > 1)
+	    putenv("SGSH_OUT=1");
+	  else
+	    putenv("SGSH_OUT=0");
+	}
+
       /* Do this now, because execute_disk_command will do it anyway in the
 	 vast majority of cases. */
       maybe_make_export_env ();
@@ -3994,6 +4021,7 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 	  if (fds_to_close)
 	    close_fd_bitmap (fds_to_close);
 
+	  printf("%d: %s: go do piping\n", (int)getpid(), __func__);
 	  do_piping (pipe_in, pipe_out);
 	  pipe_in = pipe_out = NO_PIPE;
 #if defined (COPROCESS_SUPPORT)
@@ -5455,8 +5483,8 @@ static void
 do_piping (pipe_in, pipe_out)
      int pipe_in, pipe_out;
 {
-  printf("%d: %s: pipe_in: %d, pipe_out: %d\n",
-		  (int)getpid(), __func__, pipe_in, pipe_out);
+  fprintf(stderr, "%d: %s: pipe_in: %d, pipe_out: %d\n",
+	 (int)getpid(), __func__, pipe_in, pipe_out);
   if (pipe_in != NO_PIPE)
     {
       if (dup2 (pipe_in, 0) < 0)
