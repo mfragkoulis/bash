@@ -295,6 +295,26 @@ int lastpipe_opt = 0;
 
 struct fd_bitmap *current_fds_to_close = (struct fd_bitmap *)NULL;
 
+#if defined (SGSH)
+/* Return the number of process or shell constructs
+ * that exist in a concentrator block.
+ */
+void
+n_proc_group_comm (command, n)
+     COMMAND *command; int *n;
+{
+  if (command->type != cm_connection)
+    (*n)++;
+  else
+    {
+      if (command->value.Connection->connector == '|')
+        (*n)--;
+      n_proc_group_comm(command->value.Connection->first, n);
+      n_proc_group_comm(command->value.Connection->second, n);
+    }
+}
+#endif
+
 #define FD_BITMAP_DEFAULT_SIZE 32
 
 /* Functions to allocate and deallocate the structures used to pass
@@ -1520,6 +1540,12 @@ execute_in_subshell (command, asynchronous, pipe_in, pipe_out, fds_to_close)
   if (fds_to_close)
     close_fd_bitmap (fds_to_close);
 
+#if defined (SGSH)
+  int n = 0;
+  if (command->type == cm_group)
+    n_proc_group_comm(command->value.Group->command, &n);
+#endif
+
   do_piping (pipe_in, pipe_out);
 
 #if defined (COPROCESS_SUPPORT)
@@ -2319,6 +2345,7 @@ execute_pipeline (command, asynchronous, pipe_in, pipe_out, fds_to_close)
 	 cmd->value.Connection && cmd->value.Connection->connector == '|')
     {
       /* Make a pipeline between the two commands. */
+#if defined (SGSH)
       if (sgsh)
 	{
         re = socketpair (AF_UNIX, SOCK_DGRAM, 0, fildes);
@@ -2326,6 +2353,7 @@ execute_pipeline (command, asynchronous, pipe_in, pipe_out, fds_to_close)
 			__func__, fildes[0], fildes[1]);
 	}
       else
+#endif
         re = pipe (fildes);
       if (re < 0)
 	{
