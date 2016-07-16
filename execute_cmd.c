@@ -61,6 +61,7 @@ extern int errno;
 
 #if defined (SGSH)
 #include <sys/socket.h>		/* socketpair(), AF_UNIX, SOCK_DGRAM */
+#include <assert.h>		/* assert() */
 extern int sgsh;
 #endif
 
@@ -1541,9 +1542,34 @@ execute_in_subshell (command, asynchronous, pipe_in, pipe_out, fds_to_close)
     close_fd_bitmap (fds_to_close);
 
 #if defined (SGSH)
-  int n = 0;
+  //  if (sgsh)
+  // cm_group -> cm_sgsh
   if (command->type == cm_group)
-    n_proc_group_comm(command->value.Group->command, &n);
+    {
+      ELEMENT conc_el;
+      COMMAND *conc;
+      char token[20];
+      int n = 0;
+
+      strcpy(token, "../sgsh-conc");
+      conc_el.word = alloc_word_desc();
+      conc_el.word->word = token;
+      conc_el.redirect = 0;
+      conc = make_simple_command(conc_el, (COMMAND *)NULL);
+
+      assert(!(pipe_in >= 0 && pipe_out >= 0));
+      if (pipe_in != NO_PIPE)
+        strcpy(token, "-o");
+      else
+        strcpy(token, "-i");
+      conc_el.word->word = token;
+      conc = make_simple_command(conc_el, conc);
+
+      n_proc_group_comm(command->value.Group->command, &n);
+      sprintf(token, "%d", n);
+      conc_el.word->word = token;
+      conc = make_simple_command(conc_el, conc);
+    }
 #endif
 
   do_piping (pipe_in, pipe_out);
