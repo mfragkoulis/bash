@@ -414,7 +414,6 @@ static int
 shell_control_structure (type)
      enum command_type type;
 {
-  printf("%s: command type: %d\n", __func__, type);
   switch (type)
     {
 #if defined (ARITH_FOR_COMMAND)
@@ -551,7 +550,8 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
   volatile char *ofifo_list;
 #endif
 
-  printf("%s: pipe_in: %d, pipe_out: %d\n", __func__, pipe_in, pipe_out);
+  printf("%d: %s: pipe_in: %d, pipe_out: %d\n",
+		  (int)getpid(), __func__, pipe_in, pipe_out);
 
   if (breaking || continuing)
     return (last_command_exit_value);
@@ -601,10 +601,11 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 	 control and call execute_command () on the command again. */
       line_number_for_err_trap = line_number;
       tcmd = make_command_string (command);
-      printf("%s: go make_child()\n", __func__);
+      printf("%d: %s: go make_child()\n", (int)getpid(), __func__);
       paren_pid = make_child (savestring (tcmd), asynchronous);
 
-      printf("%s: make child paren pid: %d\n", __func__, paren_pid);
+      printf("%d: %s: make child paren pid: %d\n",
+		      (int)getpid(), __func__, paren_pid);
 
       if (user_subshell && signal_is_trapped (ERROR_TRAP) && 
 	  signal_in_progress (DEBUG_TRAP) == 0 && running_trap == 0)
@@ -625,11 +626,11 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 	  /* run exit trap for : | ( ...; ) and ( ...; ) | : */
 	  s += user_subshell == 0 && command->type == cm_group && (pipe_in != NO_PIPE || pipe_out != NO_PIPE) && asynchronous == 0;
 
-	  printf("%s: go execute_in_subshell()\n", __func__);
+	  printf("%d: %s: go execute_in_subshell()\n", (int)getpid(), __func__);
 	  last_command_exit_value = execute_in_subshell (command, asynchronous, pipe_in, pipe_out, fds_to_close);
 
-	  printf("%s: last_command_exit_value: %d, s: %d\n",
-			  __func__, last_command_exit_value, s);
+	  printf("%d: %s: last_command_exit_value: %d, s: %d\n",
+			  (int)getpid(), __func__, last_command_exit_value, s);
 	  if (s)
 	    subshell_exit (last_command_exit_value);
 	  else
@@ -660,10 +661,11 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 	      invert = (command->flags & CMD_INVERT_RETURN) != 0;
 	      ignore_return = (command->flags & CMD_IGNORE_RETURN) != 0;
 
-	      printf("%s: wait for paren_pid\n", __func__);
+	      printf("%d: %s: wait for paren_pid\n", (int)getpid(), __func__);
 	      exec_result = wait_for (paren_pid);
 
-	      printf("%s: exec_result: %d\n", __func__, exec_result);
+	      printf("%d: %s: exec_result: %d\n",
+			      (int)getpid(), __func__, exec_result);
 	      /* If we have to, invert the return value. */
 	      if (invert)
 		exec_result = ((exec_result == EXECUTION_SUCCESS)
@@ -782,12 +784,13 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 
   QUIT;
 
-  printf("%s: command type: %d\n\n", __func__, command->type);
+  printf("%d: %s: command type: %d\n\n",
+		  (int)getpid(), __func__, command->type);
   switch (command->type)
     {
     case cm_simple:
       {
-	printf("%s: cm_simple case\n", __func__);
+	printf("%d: %s: cm_simple case\n", (int)getpid(), __func__);
 	save_line_number = line_number;
 	/* We can't rely on variables retaining their values across a
 	   call to execute_simple_command if a longjmp occurs as the
@@ -918,7 +921,8 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
       break;
 
     case cm_group:
-      printf("%s(): cm_group case\n", __func__);
+      printf("%d: %s(): cm_group case: pipe_in: %d, pipe_out: %d\n",
+		      (int)getpid(), __func__, pipe_in, pipe_out);
 
       /* This code can be executed from either of two paths: an explicit
 	 '{}' command, or via a function call.  If we are executed via a
@@ -963,7 +967,7 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
       break;
 
     case cm_connection:
-      printf("%s: cm_connection case\n", __func__);
+      printf("%d: %s: cm_connection case\n", (int)getpid(), __func__);
       exec_result = execute_connection (command, asynchronous,
 					pipe_in, pipe_out, fds_to_close);
       break;
@@ -1416,13 +1420,13 @@ execute_in_subshell (command, asynchronous, pipe_in, pipe_out, fds_to_close)
   should_redir_stdin = (asynchronous && (command->flags & CMD_STDIN_REDIR) &&
 			  pipe_in == NO_PIPE &&
 			  stdin_redirects (command->redirects) == 0);
-  printf("%s(): pipe_in: %d, pipe_out: %d, should_redir_stdin: %d, command->redirects: %d\n",
-		  __func__, pipe_in, pipe_out, should_redir_stdin, command->redirects);
+  printf("%d: %s(): pipe_in: %d, pipe_out: %d, should_redir_stdin: %d, command->redirects: %d\n",
+		  (int)getpid(), __func__, pipe_in, pipe_out, should_redir_stdin, command->redirects);
 
   invert = (command->flags & CMD_INVERT_RETURN) != 0;
   user_subshell = command->type == cm_subshell || ((command->flags & CMD_WANT_SUBSHELL) != 0);
-  printf("%s: user_subshell: %d, asynchronous: %d\n",
-		  __func__, user_subshell, asynchronous);
+  printf("%d: %s: user_subshell: %d, asynchronous: %d\n",
+		  (int)getpid(), __func__, user_subshell, asynchronous);
   user_coproc = command->type == cm_coproc;
 
   command->flags &= ~(CMD_FORCE_SUBSHELL | CMD_WANT_SUBSHELL | CMD_INVERT_RETURN);
@@ -1478,8 +1482,9 @@ execute_in_subshell (command, asynchronous, pipe_in, pipe_out, fds_to_close)
 	subshell_environment |= SUBSHELL_PIPE;
       if (user_coproc)
 	subshell_environment |= SUBSHELL_COPROC;
-      printf("%s: subshell_environment: %d\n",
-		      __func__, subshell_environment);
+      printf("%d: %s: subshell_environment & SUBSHELL_PIPE = %d\n",
+		      (int)getpid(), __func__,
+		      subshell_environment & SUBSHELL_PIPE);
     }
 
   reset_terminating_signals ();		/* in sig.c */
@@ -2297,7 +2302,8 @@ execute_pipeline (command, asynchronous, pipe_in, pipe_out, fds_to_close)
   pid_t lastpid;
   int re;
 
-  printf("%s: pipe_in: %d, pipe_out: %d\n", __func__, pipe_in, pipe_out);
+  printf("%d, %s: pipe_in: %d, pipe_out: %d\n",
+		  (int)getpid(), __func__, pipe_in, pipe_out);
 
 #if defined (JOB_CONTROL)
   sigset_t set, oset;
@@ -2380,6 +2386,8 @@ execute_pipeline (command, asynchronous, pipe_in, pipe_out, fds_to_close)
 
       if (ignore_return && cmd->value.Connection->first)
 	cmd->value.Connection->first->flags |= CMD_IGNORE_RETURN;
+      printf("%d: %s(): go execute_command_internal\n",
+		      (int)getpid(), __func__);
       execute_command_internal (cmd->value.Connection->first, asynchronous,
 				prev, fildes[1], fd_bitmap);
 
