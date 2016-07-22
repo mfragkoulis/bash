@@ -694,7 +694,7 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 	      DPRINTF("exec_result: %d\n", exec_result);
 
 #if defined (SGSH)
-              if (sgsh && sgsh_nest_level >= 0 &&
+              if (sgsh_nest_level >= 0 &&
 		  !strncmp(make_command_string(command), "../sgsh_conc", 11))
                 {
 		  DPRINTF("End conc at nest level %d\n",
@@ -827,7 +827,7 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 
 #if defined (SGSH)
   DPRINTF("sgsh_nest_level: %d", sgsh_nest_level);
-  if (sgsh && sgsh_nest_level >= 0 &&
+  if (sgsh_nest_level >= 0 &&
 		  command->type != cm_connection &&
 		   !(command->type == cm_sgsh && sgsh_nest_level == 0))
         change_sgsh_pipes(&pipe_in, &pipe_out);
@@ -5571,7 +5571,7 @@ create_sgsh_conc (command, pipe_in, pipe_out, fds_to_close)
 	struct fd_bitmap *fds_to_close;
 {
   int re = EXECUTION_SUCCESS;
-  if (sgsh && command->type == cm_sgsh)
+  if (command->type == cm_sgsh)
     {
       ELEMENT conc_el[3];
       COMMAND *conc;
