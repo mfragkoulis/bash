@@ -514,7 +514,7 @@ main (argc, argv, env)
 	  report_error (_("%s: option requires an argument"), "-c");
 	  exit (EX_BADUSAGE);
 	}
-      printf("command: %s\n", command_execution_string);
+      DPRINTF("command: %s\n", command_execution_string);
       arg_index++;
     }
   this_command_name = (char *)NULL;
@@ -700,7 +700,7 @@ main (argc, argv, env)
 
 #if defined (ONESHOT)
       executing = 1;
-      printf("handle command\n");
+      DPRINTF("handle command\n");
       run_one_command (command_execution_string);
       exit_shell (last_command_exit_value);
 #else /* ONESHOT */
@@ -817,7 +817,7 @@ parse_long_options (argv, arg_start, arg_end)
 
       arg_index++;
     }
-  printf("sgsh: %d\n", sgsh);
+  DPRINTF("sgsh: %d\n", sgsh);
   return (arg_index);
 }
 
@@ -916,7 +916,7 @@ void
 exit_shell (s)
      int s;
 {
-  printf("exit shell: status %d\n", s);
+  DPRINTF("exit shell: status %d\n", s);
   fflush (stdout);		/* XXX */
   fflush (stderr);
 
@@ -1355,7 +1355,7 @@ run_one_command (command)
 	  command_error ("run_one_command", CMDERR_BADJUMP, code, 0);
 	}
     }
-   printf("parse and execute\n");
+   DPRINTF("parse and execute\n");
    return (parse_and_execute (savestring (command), "-c", SEVAL_NOHIST));
 }
 #endif /* ONESHOT */

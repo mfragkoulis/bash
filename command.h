@@ -69,7 +69,7 @@ enum r_instruction {
 
 /* Command Types: */
 enum command_type { cm_for, cm_case, cm_while, cm_if, cm_simple, cm_select,
-		    cm_connection, cm_function_def, cm_until, cm_group,
+		    cm_connection, cm_function_def, cm_until, cm_group, cm_sgsh,
 		    cm_arith, cm_cond, cm_arith_for, cm_subshell, cm_coproc };
 
 /* Possible values for the `flags' field of a WORD_DESC. */
@@ -191,6 +191,9 @@ typedef struct command {
     struct simple_com *Simple;
     struct function_def *Function_def;
     struct group_com *Group;
+#if defined (SGSH)
+    struct sgsh_com *Sgsh;	/* Identical structure to group command */
+#endif
 #if defined (SELECT_COMMAND)
     struct select_com *Select;
 #endif
@@ -340,6 +343,16 @@ typedef struct group_com {
   int ignore;			/* See description of CMD flags. */
   COMMAND *command;
 } GROUP_COM;
+
+#if defined (SGSH)
+/* An sgsh command allows piping different input streams
+   to commands in the group or pipe their output
+   streams to one or more other commands. */
+typedef struct sgsh_com {
+  int ignore;			/* See description of CMD flags. */
+  COMMAND *command;
+} SGSH_COM;
+#endif
 
 typedef struct subshell_com {
   int flags;

@@ -90,6 +90,9 @@ static void print_arith_for_command __P((ARITH_FOR_COM *));
 #if defined (SELECT_COMMAND)
 static void print_select_command __P((SELECT_COM *));
 #endif
+#if defined (SGSH)
+static void print_sgsh_command __P((SGSH_COM *));
+#endif
 static void print_group_command __P((GROUP_COM *));
 static void print_case_command __P((CASE_COM *));
 static void print_while_command __P((WHILE_COM *));
@@ -132,6 +135,11 @@ static REDIRECT *deferred_heredocs;
 /* The depth of the group commands that we are currently printing.  This
    includes the group command that is a function body. */
 static int group_command_nesting;
+#if defined (SGSH)
+/* Ditto for sgsh command */
+static int sgsh_command_nesting;
+#endif
+
 
 /* A buffer to indicate the indirection level (PS4) when set -x is enabled. */
 static char *indirection_string = 0;
@@ -314,6 +322,12 @@ make_command_string_internal (command)
 	case cm_group:
 	  print_group_command (command->value.Group);
 	  break;
+
+#if defined (SGSH)
+	case cm_sgsh:
+	  print_sgsh_command (command->value.Sgsh);
+	  break;
+#endif
 
 	case cm_subshell:
 	  cprintf ("( ");
@@ -688,6 +702,45 @@ print_group_command (group_command)
   cprintf ("}");
 
   group_command_nesting--;
+}
+
+/* Heavily similar to print_group_command() */
+static void
+print_sgsh_command (sgsh_command)
+     SGSH_COM *sgsh_command;
+{
+  sgsh_command_nesting++;
+  cprintf ("{{ ");
+
+  if (inside_function_def == 0)
+    skip_this_indent++;
+  else
+    {
+      /* This is a group command { ... } inside of a function
+	 definition, and should be printed as a multiline group
+	 command, using the current indentation. */
+      cprintf ("\n");
+      indentation += indentation_amount;
+    }
+
+  make_command_string_internal (sgsh_command->command);
+  PRINT_DEFERRED_HEREDOCS ("");
+
+  if (inside_function_def)
+    {
+      cprintf ("\n");
+      indentation -= indentation_amount;
+      indent (indentation);
+    }
+  else
+    {
+      semicolon ();
+      cprintf (" ");
+    }
+
+  cprintf ("}}");
+
+  sgsh_command_nesting--;
 }
 
 void

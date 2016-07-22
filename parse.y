@@ -1014,8 +1014,8 @@ group_command:	'{' compound_list '}'
 
 sgsh_command:   SGSH_START compound_list SGSH_END
 			{
-			  printf("sgsh command\n");
-			  $$ = make_group_command ($2);
+			  DPRINTF("sgsh command\n");
+			  $$ = make_sgsh_command ($2);
 			  
 			}
 
@@ -1366,7 +1366,7 @@ init_yy_io (get, unget, type, name, location)
      const char *name;
      INPUT_STREAM location;
 {
-  printf("%s: YYDEBUG: %d, yydebug: %d, string: %s, name: %s\n", __func__, YYDEBUG, yydebug, location.string, name);
+  DPRINTF("YYDEBUG: %d, yydebug: %d, string: %s, name: %s\n", YYDEBUG, yydebug, location.string, name);
   bash_input.type = type;
   FREE (bash_input.name);
   bash_input.name = name ? savestring (name) : (char *)NULL;
@@ -1567,7 +1567,6 @@ with_input_from_string (string, name)
      const char *name;
 {
   INPUT_STREAM location;
-  printf("%s\n", __func__);
 
   location.string = string;
   init_yy_io (yy_string_get, yy_string_unget, st_string, name, location);
@@ -2045,7 +2044,7 @@ read_a_line (remove_quoted_newline)
       else
 	line_buffer[indx++] = c;
 
-      printf("%s(): %s\n", __func__, line_buffer);
+      DPRINTF("line_buffer: %s\n", line_buffer);
 
       if (c == '\n')
 	{

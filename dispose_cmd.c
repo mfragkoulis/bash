@@ -85,6 +85,16 @@ dispose_command (command)
 	break;
       }
 
+#if defined (SGSH)
+    /* Heavily similar to group command */
+    case cm_sgsh:
+      {
+	dispose_command (command->value.Sgsh->command);
+	free (command->value.Sgsh);
+	break;
+      }
+#endif
+
     case cm_subshell:
       {
 	dispose_command (command->value.Subshell->command);
