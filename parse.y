@@ -1366,8 +1366,6 @@ init_yy_io (get, unget, type, name, location)
      const char *name;
      INPUT_STREAM location;
 {
-  DPRINTF("name: %s\n", name);
-  //DPRINTF("YYDEBUG: %d, yydebug: %d, string: %s, name: %s\n", YYDEBUG, yydebug, location.string, name);
   bash_input.type = type;
   FREE (bash_input.name);
   bash_input.name = name ? savestring (name) : (char *)NULL;
