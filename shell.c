@@ -713,6 +713,7 @@ main (argc, argv, env)
      default_input as appropriate. */
   if (arg_index != argc && read_from_stdin == 0)
     {
+      DPRINTF("input from file: %s\n", argv[arg_index]);
       open_shell_script (argv[arg_index]);
       arg_index++;
     }
