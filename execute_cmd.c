@@ -4085,15 +4085,27 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
         {
 	  if ((sgsh_nest_level >= 0 &&
                sgsh_proc_fds[sgsh_nest_level]->output_type) || pipe_in >= 0)
-	    putenv("SGSH_IN=1");
+	    {
+	      putenv("SGSH_IN=1");
+              update_export_env_inplace ("SGSH_IN=", 8, "1");
+	    }
 	  else
-	    putenv("SGSH_IN=0");
+	    {
+	      putenv("SGSH_IN=0");
+              update_export_env_inplace ("SGSH_IN=", 8, "0");
+	    }
 	  if ((sgsh_nest_level >= 0 &&
 	       !sgsh_proc_fds[sgsh_nest_level]->output_type) ||
 	       pipe_out == 0 || pipe_out > 1)
-	    putenv("SGSH_OUT=1");
+	    {
+	      putenv("SGSH_OUT=1");
+              update_export_env_inplace ("SGSH_OUT=", 9, "1");
+	    }
 	  else
-	    putenv("SGSH_OUT=0");
+	    {
+	      putenv("SGSH_OUT=0");
+              update_export_env_inplace ("SGSH_OUT=", 9, "0");
+	    }
 	}
 #endif
       /* Do this now, because execute_disk_command will do it anyway in the
