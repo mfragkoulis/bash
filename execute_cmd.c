@@ -109,20 +109,18 @@ extern int sgsh;
 struct sgsh_conc {
   int *outfda;
   int outfda_size;
+  int out_index;
   int *infda;
   int infda_size;
-  int index;
+  int in_index;
   int output_type;	/* 0 = input, 1 = output, 2 = both */
-  int iswithin_group;	// whether in the context of a { .. } contained in conc
-  int group_pipe_out;	/* store group's pipe out to inject it in the first
-			 * process with pipe_out == NO_PIPE */
 };
 
 static struct sgsh_conc **sgsh_conc_fds = NULL;
 static struct sgsh_conc **sgsh_proc_fds = NULL;
 static int sgsh_nest_level = -1;
 
-static int change_sgsh_pipes __P((int *, int *, COMMAND *));
+static void change_sgsh_pipes __P((int *, int *, COMMAND *));
 static int get_sgsh_block_comm_n __P((COMMAND *, int*));
 static int create_sgsh_conc __P((COMMAND *, int*, int*, struct fd_bitmap *));
 #endif
@@ -629,14 +627,6 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 	 control and call execute_command () on the command again. */
       line_number_for_err_trap = line_number;
       tcmd = make_command_string (command);
-#if defined (SGSH)
-      DPRINTF("for commands that execute in subshell: sgsh_nest_level: %d, command: %s",
-		  sgsh_nest_level, make_command_string(command));
-          // XXX: implication with tapping pipes? see s in the following lines
-          if (sgsh_nest_level >= 0 && command->type != cm_connection &&
-              !(command->type == cm_sgsh && sgsh_nest_level == 0))
-            change_sgsh_pipes(&pipe_in, &pipe_out, command);
-#endif
       DPRINTF("go make_child()\n");
       paren_pid = make_child (savestring (tcmd), asynchronous);
 
@@ -657,10 +647,6 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 	     runs the exit trap for () subshells itself. */
 	  /* This handles { command; } & */
 #if defined (SGSH)
-	  /* Set after the fork: visible only to the group command */
-	  if (sgsh_nest_level >= 0)
-	    sgsh_proc_fds[sgsh_nest_level]->iswithin_group = 1;
-
 	  s = user_subshell == 0 && (command->type == cm_group || command->type == cm_sgsh) && pipe_in == NO_PIPE && pipe_out == NO_PIPE && asynchronous;
 #else
 	  s = user_subshell == 0 && command->type == cm_group && pipe_in == NO_PIPE && pipe_out == NO_PIPE && asynchronous;
@@ -5874,13 +5860,14 @@ get_sgsh_block_comm_n (command, n)
  * a socketpair edge that communicates with an
  * sgsh concentrator.
  */
-static int change_sgsh_pipes(pipe_in, pipe_out, command)
+static void change_sgsh_pipes(pipe_in, pipe_out, command)
      int *pipe_in; int *pipe_out; COMMAND *command;
 {
   struct sgsh_conc *sgshp = sgsh_proc_fds[sgsh_nest_level];
-  DPRINTF("output_type: %d, outsize: %d, insize: %d, index: %d, pipe_in: %d, pipe_out: %d\n",
+  DPRINTF("output_type: %d, outsize: %d, insize: %d, out_index: %d, in_index: %d, pipe_in: %d, pipe_out: %d\n",
 		  sgshp->output_type, sgshp->outfda_size,
-		  sgshp->infda_size, sgshp->index, *pipe_in, *pipe_out);
+		  sgshp->infda_size, sgshp->out_index,
+		  sgshp->in_index, *pipe_in, *pipe_out);
 
   if ((sgshp->output_type == 2 && (*pipe_in == NO_PIPE ||
        *pipe_out == NO_PIPE)) ||
@@ -5894,42 +5881,25 @@ static int change_sgsh_pipes(pipe_in, pipe_out, command)
       int j = 0;
       int isboth = 0;
 
-      DPRINTF("within group: %d, pipe_out: %d\n",
-		      sgshp->iswithin_group, *pipe_out,
-		      sgshp->group_pipe_out);
-
-      if (sgshp->iswithin_group)
-	{
-	  if (*pipe_out == NO_PIPE && sgshp->group_pipe_out)
-	    {
-	      *pipe_out = sgshp->group_pipe_out;
-	      sgshp->group_pipe_out = 0;
-            }
-	    return EXECUTION_SUCCESS;
-	}
-
       if (sgshp->output_type == 2)
 	isboth = 1;
 
       if ((sgshp->output_type == 1 || isboth) && *pipe_in == NO_PIPE)
 	{
-	  assert(sgshp->index < sgshp->outfda_size);
-	  *pipe_in = sgshp->outfda[sgshp->index];
+	  assert(sgshp->out_index < sgshp->outfda_size);
+	  *pipe_in = sgshp->outfda[sgshp->out_index];
+	  sgshp->out_index++;
 	}
 
       if ((sgshp->output_type == 0 || isboth) && *pipe_out == NO_PIPE)
 	{
-	  assert(sgshp->index < sgshp->infda_size);
-	  if (command->type == cm_group)
-            sgshp->group_pipe_out = sgshp->infda[sgshp->index];
-	  else
-	    *pipe_out = sgshp->infda[sgshp->index];
+	  assert(sgshp->in_index < sgshp->infda_size);
+	  *pipe_out = sgshp->infda[sgshp->in_index];
+	  sgshp->in_index++;
 	}
-	sgshp->index++;
     }
-  DPRINTF("sgsh_procs: pipe_in: %d, pipe_out: %d, index: %d\n",
-		  *pipe_in, *pipe_out, sgshp->index);
-  return EXECUTION_SUCCESS;
+  DPRINTF("sgsh_procs: pipe_in: %d, pipe_out: %d, out_index: %d, in_index: %d\n",
+		  *pipe_in, *pipe_out, sgshp->out_index, sgshp->in_index);
 }
 #endif
 
