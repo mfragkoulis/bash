@@ -4364,7 +4364,8 @@ run_builtin:
 	  if (async)
 	    {
 	      DPRINTF("async: CMD_STDIN_REDIR: %d, pipe_in: %d, stdin_redirects: %d\n",
-			      simple_command->flags & CMD_STDIN_REDIR, pipe_in, stdin_redirects(simple_command->redirects));
+			      simple_command->flags & CMD_STDIN_REDIR, pipe_in,
+			      stdin_redirects(simple_command->redirects));
 	      if ((simple_command->flags & CMD_STDIN_REDIR) &&
 		    pipe_in == NO_PIPE &&
 		    (stdin_redirects (simple_command->redirects) == 0))
@@ -5864,7 +5865,8 @@ static void change_sgsh_pipes(pipe_in, pipe_out, command)
      int *pipe_in; int *pipe_out; COMMAND *command;
 {
   struct sgsh_conc *sgshp = sgsh_proc_fds[sgsh_nest_level];
-  DPRINTF("output_type: %d, outsize: %d, insize: %d, out_index: %d, in_index: %d, pipe_in: %d, pipe_out: %d\n",
+  DPRINTF("output_type: %d, outsize: %d, insize: %d, out_index: %d,"
+		  "in_index: %d, pipe_in: %d, pipe_out: %d\n",
 		  sgshp->output_type, sgshp->outfda_size,
 		  sgshp->infda_size, sgshp->out_index,
 		  sgshp->in_index, *pipe_in, *pipe_out);
@@ -5874,7 +5876,8 @@ static void change_sgsh_pipes(pipe_in, pipe_out, command)
       (sgshp->output_type == 1 && *pipe_in == NO_PIPE) ||
       (!sgshp->output_type && *pipe_out == NO_PIPE))
     {
-      DPRINTF("go change pipe. command: %s, all out pipes: %d, in pipes: %d, pipe_in: %d, pipe_out: %d\n",
+      DPRINTF("go change pipe. command: %s, all out pipes: %d,"
+		      "in pipes: %d, pipe_in: %d, pipe_out: %d\n",
 		      make_command_string(command),
 		      sgshp->outfda_size, sgshp->infda_size,
 		      *pipe_in, *pipe_out);
