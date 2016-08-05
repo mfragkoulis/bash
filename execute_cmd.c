@@ -627,6 +627,15 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 	 control and call execute_command () on the command again. */
       line_number_for_err_trap = line_number;
       tcmd = make_command_string (command);
+#if defined (SGSH)
+      DPRINTF("sgsh_nest_level: %d, should be compound command: %s",
+		  sgsh_nest_level, make_command_string(command));
+      // XXX: decide black list of command types to not change pipes
+      if (sgsh_nest_level >= 0 && command->type != cm_connection &&
+          command->type != cm_group &&
+          !(command->type == cm_sgsh && sgsh_nest_level == 0))
+        change_sgsh_pipes(&pipe_in, &pipe_out, command);
+#endif
       DPRINTF("go make_child()\n");
       paren_pid = make_child (savestring (tcmd), asynchronous);
 
@@ -862,8 +871,7 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 		  sgsh_nest_level, make_command_string(command));
   // XXX: decide black list of command types to not change pipes
   if (sgsh_nest_level >= 0 && command->type != cm_connection &&
-      command->type != cm_group &&
-      !(command->type == cm_sgsh && sgsh_nest_level == 0))
+      command->type != cm_group && command->type != cm_sgsh)
     change_sgsh_pipes(&pipe_in, &pipe_out, command);
 #endif
 
