@@ -118,6 +118,10 @@ struct sgsh_conc {
 
 static struct sgsh_conc **sgsh_conc_fds = NULL;
 static struct sgsh_conc **sgsh_proc_fds = NULL;
+/* Each multipipe block runs in a separate subshell
+ * so levels are not required.
+ * They are isolated from one another
+ */
 static int sgsh_nest_level = -1;
 
 static void change_sgsh_pipes __P((int *, int *, COMMAND *));
