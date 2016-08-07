@@ -636,8 +636,7 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 		  sgsh_nest_level, make_command_string(command));
       // XXX: decide black list of command types to not change pipes
       if (sgsh_nest_level >= 0 && command->type != cm_connection &&
-          command->type != cm_group &&
-          !(command->type == cm_sgsh && sgsh_nest_level == 0))
+          command->type != cm_group)
         change_sgsh_pipes(&pipe_in, &pipe_out, command);
 #endif
       DPRINTF("go make_child()\n");
@@ -1644,6 +1643,7 @@ execute_in_subshell (command, asynchronous, pipe_in, pipe_out, fds_to_close)
    * In do_piping() they will be dupped to stdin/stdout and
    * execute_command_internal() will be called with
    * pipe_in = NO_PIPE, pipe_out = NO_PIPE
+   *  XXX: ignoring exit status
    */
   create_sgsh_conc(command, &pipe_in, &pipe_out, fds_to_close);
 #endif
@@ -5836,7 +5836,8 @@ create_sgsh_conc (command, pipe_in, pipe_out, fds_to_close)
           conc_out = create_conc_command(fds, type, prog, 1, pass_origin);
 	  re = execute_conc_command(conc_out, n, 1, pipe_in, fds_to_close);
 	}
-      if (*pipe_out != NO_PIPE && re == EXECUTION_SUCCESS)	// gather
+      // XXX ignoring return value; track bug with committer-plot.sh example
+      if (*pipe_out != NO_PIPE) // && re == EXECUTION_SUCCESS)	// gather
 	{
           output++;	// Either 0 or 2
           conc_in = create_conc_command(fds, type, prog, output, pass_origin);
