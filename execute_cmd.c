@@ -4133,6 +4133,22 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 #if defined (SGSH)
       if (sgsh)
         {
+	  int n;
+	  SHELL_VAR *path = find_variable("PATH");
+	  char sgshpath[20] = "/usr/local/sgsh/bin";
+	  DPRINTF("%s(), path: %s, sgshpath: %s", __func__, path->value, sgshpath);
+	  if (strncmp(path->value, sgshpath, 19))
+	    {
+	      int newlen = strlen(path->value) + 20 + 1;
+	      char newpath[newlen];
+	      DPRINTF("%s(): path: %s",
+			  __func__, path->value);
+	      sprintf(newpath, "%s:%s", sgshpath, path->value);
+	      bind_variable("PATH", newpath, 0);
+	      DPRINTF("%s(): after prepending, path: %s",
+			  __func__, newpath);
+	    }
+
 	  if ((sgsh_nest_level >= 0 &&
                sgsh_proc_fds[sgsh_nest_level]->output_type) || pipe_in >= 0)
 	    {
