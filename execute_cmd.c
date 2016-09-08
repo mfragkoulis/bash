@@ -874,7 +874,13 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 		  sgsh_nest_level, make_command_string(command));
   // XXX: decide black list of command types to not change pipes
   if (sgsh_nest_level >= 0 && command->type != cm_connection &&
-      command->type != cm_group && command->type != cm_sgsh)
+      command->type != cm_group && command->type != cm_sgsh &&
+      /* If no pipe in, no pipe out, and not asynchronous
+       * then this is a helper command embedded in another command
+       * We don't want to change its pipes
+       * TODO: it does not work for a pipeline of helper commands
+       */
+      (pipe_in != NO_PIPE || pipe_out != NO_PIPE || asynchronous == 1))
     change_sgsh_pipes(&pipe_in, &pipe_out, command);
 #endif
 
