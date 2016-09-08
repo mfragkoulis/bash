@@ -876,9 +876,9 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
   if (sgsh_nest_level >= 0 && command->type != cm_connection &&
       command->type != cm_group && command->type != cm_sgsh &&
       /* If no pipe in, no pipe out, and not asynchronous
-       * then this is a helper command embedded in another command
-       * We don't want to change its pipes
-       * TODO: it does not work for a pipeline of helper commands
+       * then this is a command substitution.
+       * We don't want to change its pipes.
+       * TODO: it does not work for a pipeline of command substitutions
        */
       (pipe_in != NO_PIPE || pipe_out != NO_PIPE || asynchronous == 1))
     change_sgsh_pipes(&pipe_in, &pipe_out, command);
