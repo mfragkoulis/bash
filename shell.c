@@ -233,6 +233,7 @@ int posixly_correct = 0;	/* Non-zero means posix.2 superset. */
 
 #if defined (SGSH)
 int sgsh = 0;
+static char *sgshpath = "/usr/local/sgsh/bin";
 #endif
 
 /* Some long-winded argument names.  These are obviously new. */
@@ -671,6 +672,11 @@ main (argc, argv, env)
       bind_variable ("POSIXLY_CORRECT", "y", 0);
       sv_strict_posix ("POSIXLY_CORRECT");
     }
+
+#if defined (SGSH)
+  if (sgsh)
+      bind_variable("SGSHPATH", sgshpath, 0);
+#endif
 
 #if defined (RESTRICTED_SHELL)
   /* Turn on the restrictions after executing the startup files.  This

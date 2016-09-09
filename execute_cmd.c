@@ -4141,15 +4141,16 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
         {
 	  int n;
 	  SHELL_VAR *path = find_variable("PATH");
-	  char sgshpath[20] = "/usr/local/sgsh/bin";
-	  DPRINTF("%s(), path: %s, sgshpath: %s", __func__, path->value, sgshpath);
-	  if (strncmp(path->value, sgshpath, 19))
+	  SHELL_VAR *sgshpath = find_variable("SGSHPATH");
+	  DPRINTF("%s(), path: %s, sgshpath: %s",
+			  __func__, path->value, sgshpath->value);
+	  if (strncmp(path->value, sgshpath->value, 19))
 	    {
 	      int newlen = strlen(path->value) + 20 + 1;
 	      char newpath[newlen];
 	      DPRINTF("%s(): path: %s",
 			  __func__, path->value);
-	      sprintf(newpath, "%s:%s", sgshpath, path->value);
+	      sprintf(newpath, "%s:%s", sgshpath->value, path->value);
 	      bind_variable("PATH", newpath, 0);
 	      DPRINTF("%s(): after prepending, path: %s",
 			  __func__, newpath);
