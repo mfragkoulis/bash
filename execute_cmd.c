@@ -5859,8 +5859,7 @@ create_sgsh_conc (command, pipe_in, pipe_out, fds_to_close)
           conc_out = create_conc_command(fds, type, prog, 1, pass_origin);
 	  re = execute_conc_command(conc_out, n, 1, pipe_in, fds_to_close);
 	}
-      // XXX ignoring return value; track bug with committer-plot.sh example
-      if (*pipe_out != NO_PIPE) // && re == EXECUTION_SUCCESS)	// gather
+      if (*pipe_out != NO_PIPE && re == EXECUTION_SUCCESS)	// gather
 	{
           output++;	// Either 0 or 2
           conc_in = create_conc_command(fds, type, prog, output, pass_origin);
