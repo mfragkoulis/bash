@@ -472,7 +472,7 @@ BUILTIN_DEFS = $(DEFSRC)/alias.def $(DEFSRC)/bind.def $(DEFSRC)/break.def \
 	       $(DEFSRC)/builtin.def $(DEFSRC)/cd.def $(DEFSRC)/colon.def \
 	       $(DEFSRC)/command.def ${DEFSRC}/complete.def \
 	       $(DEFSRC)/caller.def $(DEFSRC)/declare.def \
-	       $(DEFSRC)/echo.def $(DEFSRC)/enable.def $(DEFSRC)/eval.def \
+	       $(DEFSRC)/enable.def $(DEFSRC)/eval.def \
 	       $(DEFSRC)/exec.def $(DEFSRC)/exit.def $(DEFSRC)/fc.def \
 	       $(DEFSRC)/fg_bg.def $(DEFSRC)/hash.def $(DEFSRC)/help.def \
 	       $(DEFSRC)/history.def $(DEFSRC)/jobs.def $(DEFSRC)/kill.def \
@@ -492,7 +492,7 @@ BUILTIN_C_OBJ  = $(DEFDIR)/common.o $(DEFDIR)/evalstring.o \
 BUILTIN_OBJS = $(DEFDIR)/alias.o $(DEFDIR)/bind.o $(DEFDIR)/break.o \
 	       $(DEFDIR)/builtin.o $(DEFDIR)/cd.o $(DEFDIR)/colon.o \
 	       $(DEFDIR)/command.o $(DEFDIR)/caller.o $(DEFDIR)/declare.o \
-	       $(DEFDIR)/echo.o $(DEFDIR)/enable.o $(DEFDIR)/eval.o \
+	       $(DEFDIR)/enable.o $(DEFDIR)/eval.o \
 	       $(DEFDIR)/exec.o $(DEFDIR)/exit.o $(DEFDIR)/fc.o \
 	       $(DEFDIR)/fg_bg.o $(DEFDIR)/hash.o $(DEFDIR)/help.o \
 	       $(DEFDIR)/history.o $(DEFDIR)/jobs.o $(DEFDIR)/kill.o \
@@ -900,7 +900,6 @@ variables.o: config-top.h
 builtins/command.o: config-top.h
 builtins/common.o: config-top.h
 builtins/break.o: config-top.h
-builtins/echo.o: config-top.h
 builtins/evalstring.o: config-top.h
 builtins/exit.o: config-top.h
 builtins/kill.o: config-top.h
@@ -1304,10 +1303,6 @@ builtins/declare.o: command.h config.h ${BASHINCDIR}/memalloc.h error.h general.
 builtins/declare.o: shell.h syntax.h bashjmp.h ${BASHINCDIR}/posixjmp.h sig.h unwind_prot.h variables.h arrayfunc.h conftypes.h quit.h
 builtins/declare.o: dispose_cmd.h make_cmd.h subst.h externs.h ${BASHINCDIR}/stdc.h
 builtins/declare.o: $(DEFSRC)/bashgetopt.h pathnames.h
-builtins/echo.o: command.h config.h ${BASHINCDIR}/memalloc.h error.h general.h xmalloc.h ${BASHINCDIR}/maxpath.h
-builtins/echo.o: shell.h syntax.h bashjmp.h ${BASHINCDIR}/posixjmp.h sig.h unwind_prot.h variables.h arrayfunc.h conftypes.h quit.h
-builtins/echo.o: dispose_cmd.h make_cmd.h subst.h externs.h ${BASHINCDIR}/stdc.h
-builtins/echo.o: pathnames.h
 builtins/enable.o: command.h config.h ${BASHINCDIR}/memalloc.h error.h general.h xmalloc.h ${BASHINCDIR}/maxpath.h
 builtins/enable.o: shell.h syntax.h bashjmp.h ${BASHINCDIR}/posixjmp.h sig.h unwind_prot.h variables.h arrayfunc.h conftypes.h quit.h
 builtins/enable.o: dispose_cmd.h make_cmd.h subst.h externs.h ${BASHINCDIR}/stdc.h
@@ -1520,7 +1515,6 @@ builtins/colon.o: $(DEFSRC)/colon.def
 builtins/command.o: $(DEFSRC)/command.def
 builtins/complete.o: $(DEFSRC)/complete.def
 builtins/declare.o: $(DEFSRC)/declare.def
-builtins/echo.o: $(DEFSRC)/echo.def
 builtins/enable.o: $(DEFSRC)/enable.def
 builtins/eval.o: $(DEFSRC)/eval.def
 builtins/exec.o: $(DEFSRC)/exec.def
