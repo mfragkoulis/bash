@@ -233,6 +233,7 @@ int posixly_correct = 0;	/* Non-zero means posix.2 superset. */
 
 #if defined (SGSH)
 int sgsh = 0;
+int sgsh_negotiation = 0;
 static char *sgshpath = "/usr/local/sgsh/bin";
 #endif
 
@@ -272,6 +273,7 @@ static const struct {
 #endif
 #if defined (SGSH)
   { "sgsh", Int, &sgsh, (char **)0x0 },
+  { "sgsh-negotiate", Int, &sgsh_negotiation, (char **)0x0 },
 #endif
   { (char *)0x0, Int, (int *)0x0, (char **)0x0 }
 };
@@ -676,6 +678,10 @@ main (argc, argv, env)
 #if defined (SGSH)
   if (sgsh)
       bind_variable("SGSHPATH", sgshpath, 0);
+
+  DPRINTF("bash: sgsh negotiation %d\n", sgsh_negotiation);
+  if (sgsh_negotiation)
+      sgsh_negotiate("bash", NULL, NULL, NULL, NULL);
 #endif
 
 #if defined (RESTRICTED_SHELL)
