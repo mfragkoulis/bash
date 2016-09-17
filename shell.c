@@ -677,7 +677,12 @@ main (argc, argv, env)
 
 #if defined (SGSH)
   if (sgsh)
+    {
       bind_variable("SGSHPATH", sgshpath, 0);
+      // To execute exported functions with concise syntax
+      add_alias("call", "bash --sgsh-negotiate -c");
+      expand_aliases = 1;
+    }
 
   DPRINTF("bash: sgsh negotiation %d\n", sgsh_negotiation);
   if (sgsh_negotiation)
