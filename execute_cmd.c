@@ -103,7 +103,14 @@ extern int errno;
 #include <assert.h>		/* assert() */
 #define SGSH_CONC_PIPES -3
 
+/* Know when a group command ({} or function()) is executing
+ * in order not to set the sgsh path
+ */
+static int executing_group_command = 0;
+
 extern int sgsh;
+extern char *sgshpath;
+
 
 /* data structure for the sgsh concentrator */
 struct sgsh_conc {
@@ -124,6 +131,7 @@ static struct sgsh_conc **sgsh_proc_fds = NULL;
  */
 static int sgsh_nest_level = -1;
 
+static void set_sgsh_path __P((void));
 static void change_sgsh_pipes __P((int *, int *, COMMAND *));
 static int get_sgsh_block_comm_n __P((COMMAND *, int*));
 static int create_sgsh_conc __P((COMMAND *, int*, int*, struct fd_bitmap *));
@@ -882,6 +890,17 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
        */
       (pipe_in != NO_PIPE || pipe_out != NO_PIPE || asynchronous == 1))
     change_sgsh_pipes(&pipe_in, &pipe_out, command);
+
+  // Unset sgsh path from path
+  SHELL_VAR *path = find_variable("PATH");
+  char *ppath = strstr(path->value, sgshpath);
+  if (ppath)
+    {
+       DPRINTF("sgshpath in path: %s", ppath);
+       ppath += strlen(sgshpath) + 1; //<sgshpath>:
+       DPRINTF("sgshpath in path: %s", ppath);
+       bind_variable("PATH", ppath, 0);
+    }
 #endif
 
   DPRINTF("command type: %d, command: %s\n", command->type,
@@ -1022,8 +1041,9 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
       break;
 
     case cm_group:
-      DPRINTF("cm_group case: pipe_in: %d, pipe_out: %d\n",
-		      pipe_in, pipe_out);
+      executing_group_command++;
+      DPRINTF("cm_group case: executing_group_command: %d, pipe_in: %d, pipe_out: %d\n",
+		      executing_group_command, pipe_in, pipe_out);
 
       /* This code can be executed from either of two paths: an explicit
 	 '{}' command, or via a function call.  If we are executed via a
@@ -1065,6 +1085,7 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 				      asynchronous, pipe_in, pipe_out,
 				      fds_to_close);
 	}
+      executing_group_command--;
       break;
 
 #if defined (SGSH)
@@ -4137,30 +4158,14 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
   if (dofork)
     {
 #if defined (SGSH)
-      if (sgsh)
+      if (sgsh && !executing_group_command)
         {
-	  int n;
-	  SHELL_VAR *path = find_variable("PATH");
-	  SHELL_VAR *sgshpath = find_variable("SGSHPATH");
-	  DPRINTF("%s(), path: %s, sgshpath: %s",
-			  __func__, path->value, sgshpath->value);
-	  if (strncmp(path->value, sgshpath->value, 19))
-	    {
-	      int newlen = strlen(path->value) + 20 + 1;
-	      char newpath[newlen];
-	      DPRINTF("%s(): path: %s",
-			  __func__, path->value);
-	      sprintf(newpath, "%s:%s", sgshpath->value, path->value);
-	      bind_variable("PATH", newpath, 0);
-	      DPRINTF("%s(): after prepending, path: %s",
-			  __func__, newpath);
-	    }
-
 	  if ((sgsh_nest_level >= 0 &&
                sgsh_proc_fds[sgsh_nest_level]->output_type) || pipe_in >= 0)
 	    {
 	      putenv("SGSH_IN=1");
               update_export_env_inplace ("SGSH_IN=", 8, "1");
+	      set_sgsh_path();
 	    }
 	  else
 	    {
@@ -4173,6 +4178,7 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 	    {
 	      putenv("SGSH_OUT=1");
               update_export_env_inplace ("SGSH_OUT=", 9, "1");
+	      set_sgsh_path();
 	    }
 	  else
 	    {
@@ -5651,6 +5657,27 @@ close_all_files ()
 #endif
 
 #if defined (SGSH)
+
+/**
+ * Prepend sgsh installation path to standard path
+ */
+static void
+set_sgsh_path()
+{
+  SHELL_VAR *path = find_variable("PATH");
+  DPRINTF("%s(), path: %s, sgshpath: %s",
+		__func__, path->value, sgshpath);
+  if (strncmp(path->value, sgshpath, 19))
+    {
+      int newlen = strlen(path->value) + 20 + 1;
+      char newpath[newlen];
+      sprintf(newpath, "%s:%s", sgshpath, path->value);
+      bind_variable("PATH", newpath, 0);
+      DPRINTF("%s(): after prepending, path: %s",
+		__func__, newpath);
+    }
+}
+
 /**
  * Allocate the arrays that keep the input/output endpoints of pipes
  * that connect a concentrator with the processes around it

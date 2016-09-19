@@ -234,7 +234,7 @@ int posixly_correct = 0;	/* Non-zero means posix.2 superset. */
 #if defined (SGSH)
 int sgsh = 0;
 int sgsh_negotiation = 0;
-static char *sgshpath = "/usr/local/sgsh/bin";
+char *sgshpath = "/usr/local/sgsh/bin";
 #endif
 
 /* Some long-winded argument names.  These are obviously new. */
@@ -678,7 +678,6 @@ main (argc, argv, env)
 #if defined (SGSH)
   if (sgsh)
     {
-      bind_variable("SGSHPATH", sgshpath, 0);
       // To execute exported functions with concise syntax
       add_alias("call", "bash --sgsh-negotiate -c");
       expand_aliases = 1;
