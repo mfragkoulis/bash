@@ -5824,7 +5824,7 @@ create_conc_command(fds, type, prog, output, pass_origin)
   conc = make_simple_command(conc_el[1], conc);
 
   // XXX
-  strcpy(prog, "../sgsh-conc");
+  sprintf(prog, "%s/sgsh-conc", sgshpath);
   conc_el[0].word = alloc_word_desc();
   conc_el[0].word->word = prog;
   conc_el[0].redirect = 0;
@@ -5847,7 +5847,7 @@ create_sgsh_conc (command, pipe_in, pipe_out, fds_to_close)
   if (command->type == cm_sgsh)
     {
       char fds[3];
-      char prog[40];
+      char prog[100];
       char type[3];
       char pass_origin[3];
       int n = 0, i = 0;
