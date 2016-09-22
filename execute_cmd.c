@@ -5823,7 +5823,6 @@ create_conc_command(fds, type, prog, output, pass_origin)
   conc_el[1].redirect = 0;
   conc = make_simple_command(conc_el[1], conc);
 
-  // XXX
   sprintf(prog, "%s/sgsh-conc", sgshpath);
   conc_el[0].word = alloc_word_desc();
   conc_el[0].word->word = prog;
