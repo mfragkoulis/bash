@@ -5904,7 +5904,8 @@ get_sgsh_block_comm_n (command, n)
 {
   if (!command)
     return 0;
-  DPRINTF("command: %d, n: %d\n", command->type, *n);
+  DPRINTF("command type: %d, command: %s, n: %d\n",
+		  command->type, make_command_string(command), *n);
   if (command->type != cm_connection)
     (*n)++;
   else
