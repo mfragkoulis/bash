@@ -896,9 +896,10 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
   char *ppath = strstr(path->value, sgshpath);
   if (ppath)
     {
+       DPRINTF("Unset sgshpath from path");
        DPRINTF("sgshpath in path: %s", ppath);
        ppath += strlen(sgshpath) + 1; //<sgshpath>:
-       DPRINTF("sgshpath in path: %s", ppath);
+       DPRINTF("sgshpath not in path: %s", ppath);
        bind_variable("PATH", ppath, 0);
     }
 #endif
