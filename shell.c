@@ -683,9 +683,74 @@ main (argc, argv, env)
       expand_aliases = 1;
     }
 
+
   DPRINTF("bash: sgsh negotiation %d\n", sgsh_negotiation);
   if (sgsh_negotiation)
-      sgsh_negotiate("bash", NULL, NULL, NULL, NULL);
+    {
+      int k;
+      char fds[argc][20];	// /proc/self/fd/x
+      int n = 1;
+      int *ninputs = NULL;
+      int *input_fds;
+
+      // Mark special argument "<|" that means input from /proc/self/fd/x
+      for (k = 0; k < argc; k++)
+        {
+          DPRINTF("argv[%d]: %s\n", k, argv[k]);
+          if (!strcmp(argv[k], "<|") || strstr(argv[k], "\"<|\""))
+	    {
+	      if (!ninputs)
+	        {
+	          ninputs = (int *)malloc(sizeof(int));
+	          *ninputs = 1;
+	        }
+	      (*ninputs)++;
+	      DPRINTF("ninputs: %d\n", *ninputs);
+	    }
+        }
+
+      sgsh_negotiate("bash", ninputs, NULL, &input_fds, NULL);
+
+      /* Substitute special argument "<|" with /proc/self/fd/x received
+       * from negotiation
+       */
+      memset(fds, 0, sizeof(fds));
+      for (k = 0; k < argc; k++)
+        {
+	  char *m = NULL;
+          DPRINTF("argv[%d]: %s\n", k, argv[k]);
+          if (!strcmp(argv[k], "<|") || (m = strstr(argv[k], "\"<|\"")))
+            {
+	      if (m)	// substring match
+		{
+		  char new_argv[strlen(argv[k] + 20)];
+		  char argv_start[strlen(argv[k])];
+		  char argv_end[strlen(argv[k])];
+		  char proc_fd[20];
+		  sprintf(proc_fd, "/proc/self/fd/%d", input_fds[n++]);
+		  strncpy(argv_start, argv[k], m - argv[k]);
+		  DPRINTF("argv_start: %s", argv_start);
+		  strcpy(argv_end, m+4);	// pointer math: skip "<|" and copy
+		  DPRINTF("argv_end: %s", argv_end);
+		  sprintf(new_argv, "%s%s%s", argv_start, proc_fd, argv_end);
+		  DPRINTF("new_argv: %s", new_argv);
+	          strcpy(argv[k], new_argv);
+		}
+	      else	// full match, just substitute
+	        {
+	          sprintf(fds[k], "/proc/self/fd/%d", input_fds[n++]);
+	          strcpy(argv[k], fds[k]);
+		}
+	    }
+          DPRINTF("After sub argv[%d]: %s\n", k, argv[k]);
+        }
+
+      if (ninputs)
+        free(ninputs);
+
+      if (input_fds)
+        free(input_fds);
+    }
 #endif
 
 #if defined (RESTRICTED_SHELL)
