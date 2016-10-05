@@ -709,7 +709,32 @@ main (argc, argv, env)
 	    }
         }
 
-      sgsh_negotiate("bash", ninputs, NULL, &input_fds, NULL);
+      char negotiation_title[100];
+      if (argc >= 6)
+        snprintf(negotiation_title, 100, "%s %s %s %s %s %s",
+	   argv[0], argv[1], argv[2], argv[3], argv[4], argv[5]);
+      else if (argc == 5)
+        snprintf(negotiation_title, 100, "%s %s %s %s %s",
+	    argv[0], argv[1], argv[2], argv[3], argv[4]);
+      else if (argc == 4)
+        snprintf(negotiation_title, 100, "%s %s %s %s",
+	    argv[0], argv[1], argv[2], argv[3]);
+      else if (argc == 3)
+        snprintf(negotiation_title, 100, "%s %s %s",
+	    argv[0], argv[1], argv[2]);
+      else if (argc == 2)
+        snprintf(negotiation_title, 100, "%s %s",
+	    argv[0], argv[1]);
+      else
+        snprintf(negotiation_title, 100, "%s", argv[0]);
+
+      int status;
+      if ((status = sgsh_negotiate(negotiation_title,
+			      ninputs, NULL, &input_fds, NULL)) != 0)
+        {
+          printf("sgsh negotiation failed with status code %d.\n", status);
+          exit(1);
+        }
 
       /* Substitute special argument "<|" with /proc/self/fd/x received
        * from negotiation
