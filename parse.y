@@ -359,11 +359,12 @@ static REDIRECTEE redir;
 
 %type <command> inputunit command pipeline pipeline_command
 %type <command> list list0 list1 compound_list simple_list simple_list1
+		sgsh_block_list sgsh_term_list sgsh_list sgsh_pipeline
 %type <command> simple_command shell_command
 %type <command> for_command select_command case_command group_command
 %type <command> arith_command
 %type <command> cond_command
-%type <command> sgsh_command sgsh_block_list sgsh_list sgsh_list1 sgsh_pipeline
+%type <command> sgsh_command
 %type <command> arith_for_command
 %type <command> coproc
 %type <command> function_def function_body if_command elif_clause subshell
@@ -1020,14 +1021,14 @@ sgsh_command:	SGSH_START sgsh_block_list SGSH_END
 			}
 	;
 
-sgsh_block_list:newline_list sgsh_list
+sgsh_block_list:newline_list sgsh_term_list
 			{
 			  $$ = $2;
 			}
 	;
 
-sgsh_list:  	sgsh_list1 '\n' newline_list
-	|	sgsh_list1 '&' newline_list
+sgsh_term_list:	sgsh_list '\n' newline_list
+	|	sgsh_list '&' newline_list
 			{
 			  if ($1->type == cm_connection)
 			    $$ = connect_async_list ($1, (COMMAND *)NULL, '&');
@@ -1037,7 +1038,7 @@ sgsh_list:  	sgsh_list1 '\n' newline_list
 
 	;
 
-sgsh_list1:	sgsh_list1 '&' newline_list sgsh_list1
+sgsh_list:	sgsh_list '&' newline_list sgsh_list
 			{
 			  if ($1->type == cm_connection)
 			    $$ = connect_async_list ($1, $4, '&');

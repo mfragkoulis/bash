@@ -1,14 +1,13 @@
-/* A Bison parser, made by GNU Bison 2.3.  */
+/* A Bison parser, made by GNU Bison 3.0.2.  */
 
-/* Skeleton interface for Bison's Yacc-like parsers in C
+/* Bison interface for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989, 1990, 2000, 2001, 2002, 2003, 2004, 2005, 2006
-   Free Software Foundation, Inc.
+   Copyright (C) 1984, 1989-1990, 2000-2013 Free Software Foundation, Inc.
 
-   This program is free software; you can redistribute it and/or modify
+   This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
-   any later version.
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
 
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,9 +15,7 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street, Fifth Floor,
-   Boston, MA 02110-1301, USA.  */
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 /* As a special exception, you may create a larger work that contains
    part or all of the Bison parser skeleton and distribute that work
@@ -33,62 +30,71 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
-/* Tokens.  */
+#ifndef YY_YY_Y_TAB_H_INCLUDED
+# define YY_YY_Y_TAB_H_INCLUDED
+/* Debug traces.  */
+#ifndef YYDEBUG
+# define YYDEBUG 0
+#endif
+#if YYDEBUG
+extern int yydebug;
+#endif
+
+/* Token type.  */
 #ifndef YYTOKENTYPE
 # define YYTOKENTYPE
-   /* Put the tokens into the symbol table, so that GDB and other debuggers
-      know about them.  */
-   enum yytokentype {
-     IF = 258,
-     THEN = 259,
-     ELSE = 260,
-     ELIF = 261,
-     FI = 262,
-     CASE = 263,
-     ESAC = 264,
-     FOR = 265,
-     SELECT = 266,
-     WHILE = 267,
-     UNTIL = 268,
-     DO = 269,
-     DONE = 270,
-     FUNCTION = 271,
-     COPROC = 272,
-     COND_START = 273,
-     COND_END = 274,
-     COND_ERROR = 275,
-     IN = 276,
-     BANG = 277,
-     TIME = 278,
-     TIMEOPT = 279,
-     TIMEIGN = 280,
-     SGSH_START = 281,
-     SGSH_END = 282,
-     WORD = 283,
-     ASSIGNMENT_WORD = 284,
-     REDIR_WORD = 285,
-     NUMBER = 286,
-     ARITH_CMD = 287,
-     ARITH_FOR_EXPRS = 288,
-     COND_CMD = 289,
-     AND_AND = 290,
-     OR_OR = 291,
-     GREATER_GREATER = 292,
-     LESS_LESS = 293,
-     LESS_AND = 294,
-     LESS_LESS_LESS = 295,
-     GREATER_AND = 296,
-     SEMI_SEMI = 297,
-     SEMI_AND = 298,
-     SEMI_SEMI_AND = 299,
-     LESS_LESS_MINUS = 300,
-     AND_GREATER = 301,
-     AND_GREATER_GREATER = 302,
-     LESS_GREATER = 303,
-     GREATER_BAR = 304,
-     BAR_AND = 305,
-     yacc_EOF = 306
-   };
+  enum yytokentype
+  {
+    IF = 258,
+    THEN = 259,
+    ELSE = 260,
+    ELIF = 261,
+    FI = 262,
+    CASE = 263,
+    ESAC = 264,
+    FOR = 265,
+    SELECT = 266,
+    WHILE = 267,
+    UNTIL = 268,
+    DO = 269,
+    DONE = 270,
+    FUNCTION = 271,
+    COPROC = 272,
+    COND_START = 273,
+    COND_END = 274,
+    COND_ERROR = 275,
+    IN = 276,
+    BANG = 277,
+    TIME = 278,
+    TIMEOPT = 279,
+    TIMEIGN = 280,
+    SGSH_START = 281,
+    SGSH_END = 282,
+    WORD = 283,
+    ASSIGNMENT_WORD = 284,
+    REDIR_WORD = 285,
+    NUMBER = 286,
+    ARITH_CMD = 287,
+    ARITH_FOR_EXPRS = 288,
+    COND_CMD = 289,
+    AND_AND = 290,
+    OR_OR = 291,
+    GREATER_GREATER = 292,
+    LESS_LESS = 293,
+    LESS_AND = 294,
+    LESS_LESS_LESS = 295,
+    GREATER_AND = 296,
+    SEMI_SEMI = 297,
+    SEMI_AND = 298,
+    SEMI_SEMI_AND = 299,
+    LESS_LESS_MINUS = 300,
+    AND_GREATER = 301,
+    AND_GREATER_GREATER = 302,
+    LESS_GREATER = 303,
+    GREATER_BAR = 304,
+    BAR_AND = 305,
+    yacc_EOF = 306
+  };
 #endif
 /* Tokens.  */
 #define IF 258
@@ -141,13 +147,13 @@
 #define BAR_AND 305
 #define yacc_EOF 306
 
-
-
-
+/* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-typedef union YYSTYPE
-#line 329 "./parse.y"
+typedef union YYSTYPE YYSTYPE;
+union YYSTYPE
 {
+#line 329 "./parse.y" /* yacc.c:1909  */
+
   WORD_DESC *word;		/* the word that we read. */
   int number;			/* the number that we read. */
   WORD_LIST *word_list;
@@ -155,14 +161,16 @@ typedef union YYSTYPE
   REDIRECT *redirect;
   ELEMENT element;
   PATTERN_LIST *pattern;
-}
-/* Line 1529 of yacc.c.  */
-#line 161 "y.tab.h"
-	YYSTYPE;
-# define yystype YYSTYPE /* obsolescent; will be withdrawn */
-# define YYSTYPE_IS_DECLARED 1
+
+#line 166 "y.tab.h" /* yacc.c:1909  */
+};
 # define YYSTYPE_IS_TRIVIAL 1
+# define YYSTYPE_IS_DECLARED 1
 #endif
+
 
 extern YYSTYPE yylval;
 
+int yyparse (void);
+
+#endif /* !YY_YY_Y_TAB_H_INCLUDED  */
