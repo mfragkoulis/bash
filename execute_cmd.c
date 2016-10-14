@@ -5908,7 +5908,24 @@ get_sgsh_block_comm_n (command, n)
   DPRINTF("command type: %d, command: %s, n: %d\n",
 		  command->type, make_command_string(command), *n);
   if (command->type != cm_connection)
-    (*n)++;
+    {
+      int up = 1;
+
+      if (command->type == cm_simple &&
+          command->value.Simple &&
+          command->value.Simple->words &&
+          command->value.Simple->words->word &&
+          command->value.Simple->words->word->word)
+	{
+          DPRINTF("command word: %s, cmp with wait: %d",
+		      command->value.Simple->words->word->word,
+		      strcmp(command->value.Simple->words->word->word, "wait"));
+          up = strcmp(command->value.Simple->words->word->word, "wait");
+	}
+
+      if (up)
+        (*n)++;
+    }
   else
     {
       if (command->value.Connection->connector == '|')

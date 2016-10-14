@@ -363,7 +363,7 @@ static REDIRECTEE redir;
 %type <command> for_command select_command case_command group_command
 %type <command> arith_command
 %type <command> cond_command
-%type <command> sgsh_command sgsh_block_list sgsh_list sgsh_list0 sgsh_list1 sgsh_pipeline_command sgsh_pipeline
+%type <command> sgsh_command sgsh_block_list sgsh_list sgsh_list1 sgsh_pipeline
 %type <command> arith_for_command
 %type <command> coproc
 %type <command> function_def function_body if_command elif_clause subshell
@@ -775,13 +775,13 @@ shell_command:	for_command
 			{ $$ = $1; }
 	|	group_command
 			{ $$ = $1; }
+	|	sgsh_command
+			{ $$ = $1; }
 	|	arith_command
 			{ $$ = $1; }
 	|	cond_command
 			{ $$ = $1; }
 	|	arith_for_command
-			{ $$ = $1; }
-	|	sgsh_command
 			{ $$ = $1; }
 	;
 
@@ -1012,30 +1012,21 @@ group_command:	'{' compound_list '}'
 			{ $$ = make_group_command ($2); }
 	;
 
-sgsh_command:	SGSH_START newline_list sgsh_block_list SGSH_END
+sgsh_command:	SGSH_START sgsh_block_list SGSH_END
 			{
 			  DPRINTF("sgsh command\n");
-			  $$ = make_sgsh_command ($3);
+			  $$ = make_sgsh_command ($2);
 			  
 			}
 	;
 
-sgsh_block_list:sgsh_list
-	|	newline_list sgsh_list1
+sgsh_block_list:newline_list sgsh_list
 			{
 			  $$ = $2;
 			}
 	;
 
-sgsh_list:	newline_list sgsh_list0
-			{
-			  $$ = $2;
-			  if (need_here_doc)
-			    gather_here_documents ();
-			 }
-	;
-
-sgsh_list0:  	sgsh_list1 '\n' newline_list
+sgsh_list:  	sgsh_list1 '\n' newline_list
 	|	sgsh_list1 '&' newline_list
 			{
 			  if ($1->type == cm_connection)
@@ -1053,20 +1044,16 @@ sgsh_list1:	sgsh_list1 '&' newline_list sgsh_list1
 			  else
 			    $$ = command_connect ($1, $4, '&');
 			}
-	|	sgsh_pipeline_command
+	|	sgsh_pipeline
 			{ $$ = $1; }
 	;
 
-sgsh_pipeline_command: sgsh_pipeline
-			{ $$ = $1; }
-	;
-
-sgsh_pipeline:	sgsh_pipeline '|' newline_list sgsh_pipeline
-			{ $$ = command_connect ($1, $4, '|'); }
+sgsh_pipeline:	simple_command
+			{ $$ = clean_simple_command ($1); }
 	|	sgsh_command
 			{ $$ = $1; }
-	|	simple_command
-			{ $$ = clean_simple_command ($1); }
+	|	sgsh_pipeline '|' newline_list sgsh_pipeline
+			{ $$ = command_connect ($1, $4, '|'); }
 	;
 
 arith_command:	ARITH_CMD
