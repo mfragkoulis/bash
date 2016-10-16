@@ -68,6 +68,10 @@ extern int no_line_editing;
 extern int wait_signal_received;
 extern sh_builtin_func_t *this_shell_builtin;
 
+#if defined (SGSH)
+extern int sgsh;
+#endif
+
 extern void initialize_siglist ();
 
 /* Non-zero after SIGINT. */
@@ -548,6 +552,13 @@ termsig_handler (sig)
 {
   static int handling_termsig = 0;
 
+/* Change a SIGINT caught while processing an sgsh script
+   to SIGTERM to terminate also async processes */
+#if defined (SGSH)
+  if (sgsh && sig == SIGINT)
+    sig = SIGTERM;
+#endif
+
   /* Simple semaphore to keep this function from being executed multiple
      times.  Since we no longer are running as a signal handler, we don't
      block multiple occurrences of the terminating signals while running. */
@@ -585,7 +596,16 @@ termsig_handler (sig)
 
   run_exit_trap ();	/* XXX - run exit trap possibly in signal context? */
   set_signal_handler (sig, SIG_DFL);
+
+/* sgsh: terminate the process group (see comment at function start) */
+#if defined (SGSH)
+  if (sgsh && sig == SIGTERM)
+    killpg (getpgrp (), SIGTERM);
+  else
+    kill (getpid (), sig);
+#else
   kill (getpid (), sig);
+#endif
 }
 
 /* What we really do when SIGINT occurs. */
