@@ -684,7 +684,7 @@ main (argc, argv, env)
     }
 
 
-  DPRINTF("bash: sgsh negotiation %d\n", sgsh_negotiation);
+  DPRINTF("bash: pgrp: %d, sgsh negotiation %d\n", getpgrp(), sgsh_negotiation);
   if (sgsh_negotiation)
     {
       int k;
