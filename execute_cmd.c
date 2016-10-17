@@ -728,7 +728,7 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
                   struct sgsh_conc *current_sgsh_proc =
 			  sgsh_proc_fds[sgsh_nest_level];
 		  DPRINTF("End conc command %s at nest level %d\n",
-			(int)getpid(), __func__, make_command_string(command),
+			make_command_string(command),
 			sgsh_nest_level);
 		  if (!strncmp(make_command_string(command),
 					  "../sgsh_conc -o", 15))
@@ -1567,8 +1567,8 @@ execute_in_subshell (command, asynchronous, pipe_in, pipe_out, fds_to_close)
   should_redir_stdin = (asynchronous && (command->flags & CMD_STDIN_REDIR) &&
 			  pipe_in == NO_PIPE &&
 			  stdin_redirects (command->redirects) == 0);
-  DPRINTF("pipe_in: %d, pipe_out: %d, should_redir_stdin: %d, command->redirects: %d\n",
-		  pipe_in, pipe_out, should_redir_stdin, command->redirects);
+  DPRINTF("pipe_in: %d, pipe_out: %d, should_redir_stdin: %d\n",
+		  pipe_in, pipe_out, should_redir_stdin);
 
   invert = (command->flags & CMD_INVERT_RETURN) != 0;
   user_subshell = command->type == cm_subshell || ((command->flags & CMD_WANT_SUBSHELL) != 0);
@@ -1628,7 +1628,7 @@ execute_in_subshell (command, asynchronous, pipe_in, pipe_out, fds_to_close)
 	subshell_environment |= SUBSHELL_PIPE;
       if (user_coproc)
 	subshell_environment |= SUBSHELL_COPROC;
-      DPRINTF("%d: %s: subshell_environment & SUBSHELL_PIPE = %d\n",
+      DPRINTF("subshell_environment & SUBSHELL_PIPE = %d\n",
 		      subshell_environment & SUBSHELL_PIPE);
     }
 
