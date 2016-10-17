@@ -318,7 +318,7 @@ TERMCAP_SOURCE	= $(TERM_LIBSRC)/termcap.c $(TERM_LIBSRC)/tparam.c
 TERMCAP_OBJ	= $(TERM_LIBDIR)/termcap.o $(TERM_LIBDIR)/tparam.o
 
 SGSH_NEGOTIATE_LIBSRC = ../../negotiate.c ../../sgsh-conc.c
-SGSH_NEGOTIATE_LIBDIR = /usr/local/sgsh/lib
+SGSH_NEGOTIATE_LIBDIR = ../..
 SGSH_NEGOTIATE_LIB = -lsgsh_negotiate
 SGSH_NEGOTIATE_LIBRARY = $(SGSH_NEGOTIATE_LIBDIR)/libsgsh_negotiate.a
 SGSH_NEGOTIATE_LDFLAGS = -L$(SGSH_NEGOTIATE_LIBDIR)
