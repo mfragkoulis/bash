@@ -359,7 +359,7 @@ static REDIRECTEE redir;
 
 %type <command> inputunit command pipeline pipeline_command
 %type <command> list list0 list1 compound_list simple_list simple_list1
-		sgsh_block_list sgsh_term_list sgsh_list sgsh_pipeline
+		sgsh_block_list sgsh_list sgsh_pipeline
 %type <command> simple_command shell_command
 %type <command> for_command select_command case_command group_command
 %type <command> arith_command
@@ -1021,21 +1021,15 @@ sgsh_command:	SGSH_START sgsh_block_list SGSH_END
 			}
 	;
 
-sgsh_block_list:newline_list sgsh_term_list
+sgsh_block_list:newline_list sgsh_list '\n' newline_list
+		{ $$ = $2; }
+	|	newline_list sgsh_list '&' newline_list
 			{
-			  $$ = $2;
-			}
-	;
-
-sgsh_term_list:	sgsh_list '\n' newline_list
-	|	sgsh_list '&' newline_list
-			{
-			  if ($1->type == cm_connection)
-			    $$ = connect_async_list ($1, (COMMAND *)NULL, '&');
+			  if ($2->type == cm_connection)
+			    $$ = connect_async_list ($2, (COMMAND *)NULL, '&');
 			  else
-			    $$ = command_connect ($1, (COMMAND *)NULL, '&');
+			    $$ = command_connect ($2, (COMMAND *)NULL, '&');
 			}
-
 	;
 
 sgsh_list:	sgsh_list '&' newline_list sgsh_list
