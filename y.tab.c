@@ -5004,8 +5004,10 @@ static int token_buffer_size;
 static int
 yylex ()
 {
+#if defined (SGSH) && defined (DEBUG)
   /* sgsh development */
   debug_parser(1);
+#endif
   if (interactive && (current_token == 0 || current_token == '\n'))
     {
       /* Before we print a prompt, we might have to check mailboxes.
