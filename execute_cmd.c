@@ -121,6 +121,7 @@ struct sgsh_conc {
   int infda_size;
   int in_index;
   int output_type;	/* 0 = input, 1 = output, 2 = both */
+  int noinput;
 };
 
 static struct sgsh_conc **sgsh_conc_fds = NULL;
@@ -4164,6 +4165,12 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 	  if ((sgsh_nest_level >= 0 &&
                sgsh_proc_fds[sgsh_nest_level]->output_type) || pipe_in >= 0)
 	    {
+	      if (sgsh_proc_fds[sgsh_nest_level]->noinput)
+	        {
+	          putenv("SGSH_START=1");
+                  update_export_env_inplace ("SGSH_START=", 8, "1");
+		  sgsh_proc_fds[sgsh_nest_level]->noinput = 0;
+		}
 	      putenv("SGSH_IN=1");
               update_export_env_inplace ("SGSH_IN=", 8, "1");
 	      set_sgsh_path();
@@ -5740,6 +5747,11 @@ execute_conc_command(conc, n, isoutput, pipe, fds_to_close)
 		  make_command_string(conc));
   if (isoutput)
     { // scatter block
+      if (*pipe == NO_PIPE)
+        {
+          current_sgsh_conc->noinput = 1;
+          current_sgsh_proc->noinput = 1;
+	}
       current_sgsh_conc->output_type++;
       current_sgsh_proc->output_type++;
       for (i = 0; i < n; i++)
@@ -5791,26 +5803,26 @@ execute_conc_command(conc, n, isoutput, pipe, fds_to_close)
  * in most cases (see the sgsh-conc source for more details)
  */
 static COMMAND *
-create_conc_command(fds, type, prog, output, pass_origin)
-	char *fds; char *type; char *prog; int output; char *pass_origin;
+create_conc_command(fds, type, prog, output, noinput)
+	char *fds; char *type; char *prog; int output; char *noinput;
 {
   ELEMENT conc_el[4];
   COMMAND *conc = NULL;
 
   if (output == 1)
-    strcpy(type, "-o");
-  else
     {
-      strcpy(type, "-i");
-      if (output == 2)
+      strcpy(type, "-o");
+      if (STREQ(noinput, "-n"))
         {
-	  strcpy(pass_origin, "-r");
 	  conc_el[3].word = alloc_word_desc();
-	  conc_el[3].word->word = pass_origin;
+	  conc_el[3].word->word = noinput;
 	  conc_el[3].redirect = 0;
 	  conc = make_simple_command(conc_el[3], (COMMAND *)NULL);
-	}
+        }
     }
+  else
+    strcpy(type, "-i");
+
   conc_el[2].word = alloc_word_desc();
   conc_el[2].word->word = fds;
   conc_el[2].redirect = 0;
@@ -5849,7 +5861,7 @@ create_sgsh_conc (command, pipe_in, pipe_out, fds_to_close)
       char fds[3];
       char prog[100];
       char type[3];
-      char pass_origin[3];
+      char noinput[3];
       int n = 0, i = 0;
       int output = -1;
       COMMAND *conc_out, *conc_in;
@@ -5880,16 +5892,18 @@ create_sgsh_conc (command, pipe_in, pipe_out, fds_to_close)
       get_sgsh_block_comm_n(command->value.Sgsh->command, &n);
       sprintf(fds, "%d", n);
       DPRINTF("%d procs in sgsh group\n", n);
-      if (*pipe_in != NO_PIPE)	// scatter
-        {
-          output = 1;
-          conc_out = create_conc_command(fds, type, prog, 1, pass_origin);
-	  re = execute_conc_command(conc_out, n, 1, pipe_in, fds_to_close);
-	}
+      //if (*pipe_in != NO_PIPE)	// scatter
+      //  {
+      output = 1;
+      if (*pipe_in == NO_PIPE)
+        sprintf(noinput, "-n");
+      conc_out = create_conc_command(fds, type, prog, 1, noinput);
+      re = execute_conc_command(conc_out, n, 1, pipe_in, fds_to_close);
+	//}
       if (*pipe_out != NO_PIPE && re == EXECUTION_SUCCESS)	// gather
 	{
           output++;	// Either 0 or 2
-          conc_in = create_conc_command(fds, type, prog, output, pass_origin);
+          conc_in = create_conc_command(fds, type, prog, output, noinput);
 	  re = execute_conc_command(conc_in, n, 0, pipe_out, fds_to_close);
 	}
     }
@@ -6011,6 +6025,7 @@ do_piping (pipe_in, pipe_out)
 {
   DPRINTF("pipe_in: %d, pipe_out: %d\n", pipe_in, pipe_out);
   int conc_isoutput = -1;
+  DPRINTF("1");
   if (pipe_in != NO_PIPE)
     {
       if (pipe_in == SGSH_CONC_PIPES)
