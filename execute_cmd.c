@@ -4165,12 +4165,6 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 	  if ((sgsh_nest_level >= 0 &&
                sgsh_proc_fds[sgsh_nest_level]->output_type) || pipe_in >= 0)
 	    {
-	      if (sgsh_proc_fds[sgsh_nest_level]->noinput)
-	        {
-	          putenv("SGSH_START=1");
-                  update_export_env_inplace ("SGSH_START=", 8, "1");
-		  sgsh_proc_fds[sgsh_nest_level]->noinput = 0;
-		}
 	      putenv("SGSH_IN=1");
               update_export_env_inplace ("SGSH_IN=", 8, "1");
 	      set_sgsh_path();
@@ -5749,9 +5743,18 @@ execute_conc_command(conc, n, isoutput, pipe, fds_to_close)
     { // scatter block
       if (*pipe == NO_PIPE)
         {
+	  /* This is a special output concentrator (-n flag) that takes no
+	   * input. Its job is to connect the terminal processes
+	   * with no input in an input concetrator block
+	   * at top level -- a gather-only block -- that take no
+	   * input.
+	   * The situation we are in means both an output and an input
+	   * concentrator will be created.
+	   */
           current_sgsh_conc->noinput = 1;
           current_sgsh_proc->noinput = 1;
 	}
+      DPRINTF("noinput set to: %d", current_sgsh_proc->noinput);
       current_sgsh_conc->output_type++;
       current_sgsh_proc->output_type++;
       for (i = 0; i < n; i++)
@@ -5965,16 +5968,23 @@ static void change_sgsh_pipes(pipe_in, pipe_out, command)
 		  sgshp->infda_size, sgshp->out_index,
 		  sgshp->in_index, *pipe_in, *pipe_out);
 
+  /* Concentrators are simple commands, but we don't want
+   * to change their pipes; we do that in do_piping().
+   * Concentrator commmands successfully fail the below conditions
+   */
   if ((sgshp->output_type == 2 && (*pipe_in == NO_PIPE ||
        *pipe_out == NO_PIPE)) ||
-      (sgshp->output_type == 1 && *pipe_in == NO_PIPE) ||
+	// Output conc  with no input: don't change its pipes
+      (sgshp->output_type == 1 && *pipe_in == NO_PIPE &&
+       !sgshp->noinput) ||
       (!sgshp->output_type && *pipe_out == NO_PIPE))
     {
       DPRINTF("go change pipe. command: %s, all out pipes: %d,"
-		      "in pipes: %d, pipe_in: %d, pipe_out: %d\n",
+		      "in pipes: %d, pipe_in: %d, pipe_out: %d\n"
+		      "noinput: %d",
 		      make_command_string(command),
 		      sgshp->outfda_size, sgshp->infda_size,
-		      *pipe_in, *pipe_out);
+		      *pipe_in, *pipe_out, sgshp->noinput);
       int j = 0;
       int isboth = 0;
 
