@@ -688,7 +688,7 @@ main (argc, argv, env)
   if (sgsh_negotiation)
     {
       int k;
-      char fds[argc][20];	// /proc/self/fd/x
+      char fds[argc][100];	// /proc/self/fd/x
       int n = 1;
       int *ninputs = NULL;
       int *input_fds;
@@ -697,14 +697,22 @@ main (argc, argv, env)
       for (k = 0; k < argc; k++)
         {
           DPRINTF("argv[%d]: %s\n", k, argv[k]);
-          if (!strcmp(argv[k], "<|") || strstr(argv[k], "\"<|\""))
+	  char *m = NULL;
+          if (!strcmp(argv[k], "<|") || 
+			  (m = strstr(argv[k], "\"<|\"")))
 	    {
 	      if (!ninputs)
 	        {
 	          ninputs = (int *)malloc(sizeof(int));
 	          *ninputs = 1;
 	        }
-	      (*ninputs)++;
+	      if (!m)
+	        (*ninputs)++;
+	      while (m) {
+	        (*ninputs)++;
+		m += 2;
+		m = strstr(m, "\"<|\"");
+	      }
 	      DPRINTF("ninputs: %d\n", *ninputs);
 	    }
         }
@@ -746,26 +754,39 @@ main (argc, argv, env)
           DPRINTF("argv[%d]: %s\n", k, argv[k]);
           if (!strcmp(argv[k], "<|") || (m = strstr(argv[k], "\"<|\"")))
             {
-	      if (m)	// substring match
+	      if (!m)	// full match, just substitute
+	          sprintf(fds[k], "/proc/self/fd/%d", input_fds[n++]);
+
+	      char *argv_end = NULL;
+	      while (m)	// substring match
 		{
 		  char new_argv[strlen(argv[k] + 20)];
-		  char argv_start[strlen(argv[k])];
-		  char argv_end[strlen(argv[k])];
+		  char argv_start[strlen(argv[k]) + 50];
+		  //char argv_end[strlen(argv[k])];
 		  char proc_fd[20];
 		  sprintf(proc_fd, "/proc/self/fd/%d", input_fds[n++]);
-		  strncpy(argv_start, argv[k], m - argv[k]);
+		  if (!argv_end)
+		    strncpy(argv_start, argv[k], m - argv[k]);
+		  else
+		    strncpy(argv_start, argv_end, m - argv_end);
 		  DPRINTF("argv_start: %s", argv_start);
-		  strcpy(argv_end, m+4);	// pointer math: skip "<|" and copy
+		  //strcpy(argv_end, m+4);	// pointer math: skip "<|" and copy
+		  argv_end = m + 4;
 		  DPRINTF("argv_end: %s", argv_end);
-		  sprintf(new_argv, "%s%s%s", argv_start, proc_fd, argv_end);
-		  DPRINTF("new_argv: %s", new_argv);
-	          strcpy(argv[k], new_argv);
+		  if (strlen(fds[k]) > 0) {
+		    strcpy(new_argv, fds[k]);
+		    sprintf(fds[k], "%s%s%s", new_argv, argv_start, proc_fd);
+		  } else
+		    sprintf(fds[k], "%s%s", argv_start, proc_fd);
+		  m = strstr(argv_end, "\"<|\"");
+		  if (!m) {
+		    strcpy(new_argv, fds[k]);
+		    sprintf(fds[k], "%s%s", fds[k], argv_end);
+		  }
+		  DPRINTF("new_argv: %s", fds[k]);
 		}
-	      else	// full match, just substitute
-	        {
-	          sprintf(fds[k], "/proc/self/fd/%d", input_fds[n++]);
-	          strcpy(argv[k], fds[k]);
-		}
+	      DPRINTF("fds[k]: %s", fds[k]);
+	      strcpy(argv[k], fds[k]);
 	    }
           DPRINTF("After sub argv[%d]: %s\n", k, argv[k]);
         }
