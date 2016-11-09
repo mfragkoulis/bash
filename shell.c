@@ -506,6 +506,131 @@ main (argc, argv, env)
   if (running_setuid && privileged_mode == 0)
     disable_priv_mode ();
 
+#if defined (SGSH)
+  DPRINTF("bash: pgrp: %d, sgsh negotiation %d\n", getpgrp(), sgsh_negotiation);
+  char *fds[argc];	// /proc/self/fd/x
+  if (sgsh_negotiation)
+    {
+      int k;
+      int n = 1;
+      int *ninputs = NULL;
+      int *input_fds;
+
+      memset(fds, 0, sizeof(fds));
+
+      // Mark special argument "<|" that means input from /proc/self/fd/x
+      for (k = 0; k < argc; k++)
+        {
+          DPRINTF("argv[%d]: %s\n", k, argv[k]);
+	  char *m = NULL;
+          if (!strcmp(argv[k], "<|") ||
+			  (m = strstr(argv[k], "\"<|\"")))
+	    {
+	      if (!ninputs)
+	        {
+	          ninputs = (int *)xmalloc(sizeof(int));
+	          *ninputs = 1;
+	        }
+	      if (!m)
+	        (*ninputs)++;
+	      while (m) {
+	        (*ninputs)++;
+		m += 2;
+		m = strstr(m, "\"<|\"");
+	      }
+	      DPRINTF("ninputs: %d\n", *ninputs);
+	    }
+        }
+
+      char negotiation_title[100];
+      if (argc >= 6)
+        snprintf(negotiation_title, 100, "%s %s %s %s %s %s",
+	   argv[0], argv[1], argv[2], argv[3], argv[4], argv[5]);
+      else if (argc == 5)
+        snprintf(negotiation_title, 100, "%s %s %s %s %s",
+	    argv[0], argv[1], argv[2], argv[3], argv[4]);
+      else if (argc == 4)
+        snprintf(negotiation_title, 100, "%s %s %s %s",
+	    argv[0], argv[1], argv[2], argv[3]);
+      else if (argc == 3)
+        snprintf(negotiation_title, 100, "%s %s %s",
+	    argv[0], argv[1], argv[2]);
+      else if (argc == 2)
+        snprintf(negotiation_title, 100, "%s %s",
+	    argv[0], argv[1]);
+      else
+        snprintf(negotiation_title, 100, "%s", argv[0]);
+
+      int status;
+      if ((status = sgsh_negotiate(negotiation_title,
+			      ninputs, NULL, &input_fds, NULL)) != 0)
+        {
+          printf("sgsh negotiation failed with status code %d.\n", status);
+          exit(1);
+        }
+
+      /* Substitute special argument "<|" with /proc/self/fd/x received
+       * from negotiation
+       */
+      memset(fds, 0, sizeof(fds));
+      for (k = 0; k < argc; k++)
+        {
+	  char *m = NULL;
+          DPRINTF("argv[%d]: %s\n", k, argv[k]);
+          if (!strcmp(argv[k], "<|") || (m = strstr(argv[k], "\"<|\"")))
+            {
+
+	      size_t size = sizeof(char) *
+		      (strlen(argv[k]) + 20 * *ninputs);
+	      fds[k] = (char *)xmalloc(size);
+	      memset(fds[k], 0, size);
+
+	      if (!m)	// full match, just substitute
+	          sprintf(fds[k], "/proc/self/fd/%d", input_fds[n++]);
+
+	      char *argv_end = NULL;
+	      while (m)	// substring match
+		{
+		  char new_argv[size];
+		  char argv_start[size];
+		  char proc_fd[20];
+		  memset(new_argv, 0, size);
+		  memset(argv_start, 0, size);
+		  memset(proc_fd, 0, 20);
+
+		  sprintf(proc_fd, "/proc/self/fd/%d", input_fds[n++]);
+		  if (!argv_end)
+		    strncpy(argv_start, argv[k], m - argv[k]);
+		  else
+		    strncpy(argv_start, argv_end, m - argv_end);
+		  DPRINTF("argv_start: %s", argv_start);
+		  argv_end = m + 4;
+		  DPRINTF("argv_end: %s", argv_end);
+		  if (strlen(fds[k]) > 0) {
+		    strcpy(new_argv, fds[k]);
+		    sprintf(fds[k], "%s%s%s", new_argv, argv_start, proc_fd);
+		  } else
+		    sprintf(fds[k], "%s%s", argv_start, proc_fd);
+		  m = strstr(argv_end, "\"<|\"");
+		  if (!m) {
+		    strcpy(new_argv, fds[k]);
+		    sprintf(fds[k], "%s%s", new_argv, argv_end);
+		  }
+		  DPRINTF("fds[k]: %s", fds[k]);
+		}
+	      argv[k] = fds[k];
+	    }
+          DPRINTF("After sub argv[%d]: %s\n", k, argv[k]);
+        }
+
+      if (ninputs)
+        free(ninputs);
+
+      if (input_fds)
+        free(input_fds);
+    }
+#endif
+
   /* Need to get the argument to a -c option processed in the
      above loop.  The next arg is a command to execute, and the
      following args are $0...$n respectively. */
@@ -682,121 +807,6 @@ main (argc, argv, env)
       add_alias("call", "bash --sgsh-negotiate -c");
       expand_aliases = 1;
     }
-
-
-  DPRINTF("bash: pgrp: %d, sgsh negotiation %d\n", getpgrp(), sgsh_negotiation);
-  if (sgsh_negotiation)
-    {
-      int k;
-      char fds[argc][100];	// /proc/self/fd/x
-      int n = 1;
-      int *ninputs = NULL;
-      int *input_fds;
-
-      // Mark special argument "<|" that means input from /proc/self/fd/x
-      for (k = 0; k < argc; k++)
-        {
-          DPRINTF("argv[%d]: %s\n", k, argv[k]);
-	  char *m = NULL;
-          if (!strcmp(argv[k], "<|") || 
-			  (m = strstr(argv[k], "\"<|\"")))
-	    {
-	      if (!ninputs)
-	        {
-	          ninputs = (int *)malloc(sizeof(int));
-	          *ninputs = 1;
-	        }
-	      if (!m)
-	        (*ninputs)++;
-	      while (m) {
-	        (*ninputs)++;
-		m += 2;
-		m = strstr(m, "\"<|\"");
-	      }
-	      DPRINTF("ninputs: %d\n", *ninputs);
-	    }
-        }
-
-      char negotiation_title[100];
-      if (argc >= 6)
-        snprintf(negotiation_title, 100, "%s %s %s %s %s %s",
-	   argv[0], argv[1], argv[2], argv[3], argv[4], argv[5]);
-      else if (argc == 5)
-        snprintf(negotiation_title, 100, "%s %s %s %s %s",
-	    argv[0], argv[1], argv[2], argv[3], argv[4]);
-      else if (argc == 4)
-        snprintf(negotiation_title, 100, "%s %s %s %s",
-	    argv[0], argv[1], argv[2], argv[3]);
-      else if (argc == 3)
-        snprintf(negotiation_title, 100, "%s %s %s",
-	    argv[0], argv[1], argv[2]);
-      else if (argc == 2)
-        snprintf(negotiation_title, 100, "%s %s",
-	    argv[0], argv[1]);
-      else
-        snprintf(negotiation_title, 100, "%s", argv[0]);
-
-      int status;
-      if ((status = sgsh_negotiate(negotiation_title,
-			      ninputs, NULL, &input_fds, NULL)) != 0)
-        {
-          printf("sgsh negotiation failed with status code %d.\n", status);
-          exit(1);
-        }
-
-      /* Substitute special argument "<|" with /proc/self/fd/x received
-       * from negotiation
-       */
-      memset(fds, 0, sizeof(fds));
-      for (k = 0; k < argc; k++)
-        {
-	  char *m = NULL;
-          DPRINTF("argv[%d]: %s\n", k, argv[k]);
-          if (!strcmp(argv[k], "<|") || (m = strstr(argv[k], "\"<|\"")))
-            {
-	      if (!m)	// full match, just substitute
-	          sprintf(fds[k], "/proc/self/fd/%d", input_fds[n++]);
-
-	      char *argv_end = NULL;
-	      while (m)	// substring match
-		{
-		  char new_argv[strlen(argv[k] + 20)];
-		  char argv_start[strlen(argv[k]) + 50];
-		  //char argv_end[strlen(argv[k])];
-		  char proc_fd[20];
-		  sprintf(proc_fd, "/proc/self/fd/%d", input_fds[n++]);
-		  if (!argv_end)
-		    strncpy(argv_start, argv[k], m - argv[k]);
-		  else
-		    strncpy(argv_start, argv_end, m - argv_end);
-		  DPRINTF("argv_start: %s", argv_start);
-		  //strcpy(argv_end, m+4);	// pointer math: skip "<|" and copy
-		  argv_end = m + 4;
-		  DPRINTF("argv_end: %s", argv_end);
-		  if (strlen(fds[k]) > 0) {
-		    strcpy(new_argv, fds[k]);
-		    sprintf(fds[k], "%s%s%s", new_argv, argv_start, proc_fd);
-		  } else
-		    sprintf(fds[k], "%s%s", argv_start, proc_fd);
-		  m = strstr(argv_end, "\"<|\"");
-		  if (!m) {
-		    strcpy(new_argv, fds[k]);
-		    sprintf(fds[k], "%s%s", fds[k], argv_end);
-		  }
-		  DPRINTF("new_argv: %s", fds[k]);
-		}
-	      DPRINTF("fds[k]: %s", fds[k]);
-	      strcpy(argv[k], fds[k]);
-	    }
-          DPRINTF("After sub argv[%d]: %s\n", k, argv[k]);
-        }
-
-      if (ninputs)
-        free(ninputs);
-
-      if (input_fds)
-        free(input_fds);
-    }
 #endif
 
 #if defined (RESTRICTED_SHELL)
@@ -888,6 +898,16 @@ main (argc, argv, env)
 #endif /* !ONESHOT */
 
   shell_initialized = 1;
+
+#if defined (SGSH)
+  if (sgsh_negotiation)
+    {
+      int k;
+      for (k = 0; k < argc; k++)
+	if (fds[k])
+	  free(fds[k]);
+    }
+#endif
 
   /* Read commands until exit condition. */
   reader_loop ();
