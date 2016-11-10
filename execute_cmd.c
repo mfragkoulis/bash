@@ -5812,27 +5812,24 @@ create_conc_command(fds, type, prog, output, noinput)
   ELEMENT conc_el[4];
   COMMAND *conc = NULL;
 
+  conc_el[3].word = alloc_word_desc();
+  conc_el[3].word->word = fds;
+  conc_el[3].redirect = 0;
+  conc = make_simple_command(conc_el[3], (COMMAND *)NULL);
+
   if (output == 1)
     {
       strcpy(type, "-o");
       if (STREQ(noinput, "-n"))
         {
-	  conc_el[3].word = alloc_word_desc();
-	  conc_el[3].word->word = noinput;
-	  conc_el[3].redirect = 0;
-	  conc = make_simple_command(conc_el[3], (COMMAND *)NULL);
+	  conc_el[2].word = alloc_word_desc();
+	  conc_el[2].word->word = noinput;
+	  conc_el[2].redirect = 0;
+	  conc = make_simple_command(conc_el[2], conc);
         }
     }
   else
     strcpy(type, "-i");
-
-  conc_el[2].word = alloc_word_desc();
-  conc_el[2].word->word = fds;
-  conc_el[2].redirect = 0;
-  if (!conc)
-    conc = make_simple_command(conc_el[2], (COMMAND *)NULL);
-  else
-    conc = make_simple_command(conc_el[2], conc);
 
   conc_el[1].word = alloc_word_desc();
   conc_el[1].word->word = type;
