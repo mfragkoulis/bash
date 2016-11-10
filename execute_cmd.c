@@ -5862,9 +5862,11 @@ create_sgsh_conc (command, pipe_in, pipe_out, fds_to_close)
       char prog[100];
       char type[3];
       char noinput[3];
+      char wait_st[] = "wait";
       int n = 0, i = 0;
       int output = -1;
-      COMMAND *conc_out, *conc_in;
+      COMMAND *conc_out, *conc_in, *wait;
+      ELEMENT wait_el;
 
       DPRINTF("CONCENTRATOR ZONE\n");
       DPRINTF("pipe_in: %d, pipe_out: %d\n", *pipe_in, *pipe_out);
@@ -5892,8 +5894,14 @@ create_sgsh_conc (command, pipe_in, pipe_out, fds_to_close)
       get_sgsh_block_comm_n(command->value.Sgsh->command, &n);
       sprintf(fds, "%d", n);
       DPRINTF("%d procs in sgsh group\n", n);
-      //if (*pipe_in != NO_PIPE)	// scatter
-      //  {
+
+      wait_el.word = alloc_word_desc();
+      wait_el.word->word = wait_st;
+      wait_el.redirect = 0;
+      wait = make_simple_command(wait_el, (COMMAND *)NULL);
+      DPRINTF("Inject wait command in multipipe block");
+      command->value.Sgsh->command->value.Connection->second = wait;
+
       output = 1;
       if (*pipe_in == NO_PIPE)
         sprintf(noinput, "-n");
@@ -5922,24 +5930,7 @@ get_sgsh_block_comm_n (command, n)
   DPRINTF("command type: %d, command: %s, n: %d\n",
 		  command->type, make_command_string(command), *n);
   if (command->type != cm_connection)
-    {
-      int up = 1;
-
-      if (command->type == cm_simple &&
-          command->value.Simple &&
-          command->value.Simple->words &&
-          command->value.Simple->words->word &&
-          command->value.Simple->words->word->word)
-	{
-          DPRINTF("command word: %s, cmp with wait: %d",
-		      command->value.Simple->words->word->word,
-		      strcmp(command->value.Simple->words->word->word, "wait"));
-          up = strcmp(command->value.Simple->words->word->word, "wait");
-	}
-
-      if (up)
-        (*n)++;
-    }
+    (*n)++;
   else
     {
       if (command->value.Connection->connector == '|')

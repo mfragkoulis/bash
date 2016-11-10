@@ -1021,9 +1021,7 @@ sgsh_command:	SGSH_START sgsh_block_list SGSH_END
 			}
 	;
 
-sgsh_block_list:newline_list sgsh_list '\n' newline_list
-		{ $$ = $2; }
-	|	newline_list sgsh_list '&' newline_list
+sgsh_block_list:newline_list sgsh_list '&' newline_list
 			{
 			  if ($2->type == cm_connection)
 			    $$ = connect_async_list ($2, (COMMAND *)NULL, '&');
