@@ -108,6 +108,11 @@ extern int errno;
  */
 static int executing_group_command = 0;
 
+/* String literal used to inject a wait command
+ * for use in an sgsh multipipe block
+ */
+static char wait_st[] = "wait";
+
 extern int sgsh;
 extern char *sgshpath;
 
@@ -5862,7 +5867,6 @@ create_sgsh_conc (command, pipe_in, pipe_out, fds_to_close)
       char prog[100];
       char type[3];
       char noinput[3];
-      char wait_st[] = "wait";
       int n = 0, i = 0;
       int output = -1;
       COMMAND *conc_out, *conc_in, *wait;
