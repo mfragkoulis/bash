@@ -68,8 +68,8 @@ extern int no_line_editing;
 extern int wait_signal_received;
 extern sh_builtin_func_t *this_shell_builtin;
 
-#if defined (SGSH)
-extern int sgsh;
+#if defined (DGSH)
+extern int dgsh;
 #endif
 
 extern void initialize_siglist ();
@@ -552,10 +552,10 @@ termsig_handler (sig)
 {
   static int handling_termsig = 0;
 
-/* Change a SIGINT caught while processing an sgsh script
+/* Change a SIGINT caught while processing an dgsh script
    to SIGTERM to terminate also async processes */
-#if defined (SGSH)
-  if (sgsh && sig == SIGINT)
+#if defined (DGSH)
+  if (dgsh && sig == SIGINT)
     sig = SIGTERM;
 #endif
 
@@ -597,9 +597,9 @@ termsig_handler (sig)
   run_exit_trap ();	/* XXX - run exit trap possibly in signal context? */
   set_signal_handler (sig, SIG_DFL);
 
-/* sgsh: terminate the process group (see comment at function start) */
-#if defined (SGSH)
-  if (sgsh && sig == SIGTERM)
+/* dgsh: terminate the process group (see comment at function start) */
+#if defined (DGSH)
+  if (dgsh && sig == SIGTERM)
     killpg (getpgrp (), SIGTERM);
   else
     kill (getpid (), sig);

@@ -98,27 +98,27 @@ extern int errno;
 #  include "bashhist.h"
 #endif
 
-#if defined (SGSH)
+#if defined (DGSH)
 #include <sys/socket.h>		/* socketpair(), AF_UNIX, SOCK_DGRAM */
 #include <assert.h>		/* assert() */
-#define SGSH_CONC_PIPES -3
+#define DGSH_CONC_PIPES -3
 
 /* Know when a group command ({} or function()) is executing
- * in order not to set the sgsh path
+ * in order not to set the dgsh path
  */
 static int executing_group_command = 0;
 
 /* String literal used to inject a wait command
- * for use in an sgsh multipipe block
+ * for use in an dgsh multipipe block
  */
 static char wait_st[] = "wait";
 
-extern int sgsh;
-extern char *sgshpath;
+extern int dgsh;
+extern char *dgshpath;
 
 
-/* data structure for the sgsh concentrator */
-struct sgsh_conc {
+/* data structure for the dgsh concentrator */
+struct dgsh_conc {
   int *outfda;
   int outfda_size;
   int out_index;
@@ -129,18 +129,18 @@ struct sgsh_conc {
   int noinput;
 };
 
-static struct sgsh_conc **sgsh_conc_fds = NULL;
-static struct sgsh_conc **sgsh_proc_fds = NULL;
+static struct dgsh_conc **dgsh_conc_fds = NULL;
+static struct dgsh_conc **dgsh_proc_fds = NULL;
 /* Each multipipe block runs in a separate subshell
  * so levels are not required.
  * They are isolated from one another
  */
-static int sgsh_nest_level = -1;
+static int dgsh_nest_level = -1;
 
-static void set_sgsh_path __P((void));
-static void change_sgsh_pipes __P((int *, int *, COMMAND *));
-static int get_sgsh_block_comm_n __P((COMMAND *, int*));
-static int create_sgsh_conc __P((COMMAND *, int*, int*, struct fd_bitmap *));
+static void set_dgsh_path __P((void));
+static void change_dgsh_pipes __P((int *, int *, COMMAND *));
+static int get_dgsh_block_comm_n __P((COMMAND *, int*));
+static int create_dgsh_conc __P((COMMAND *, int*, int*, struct fd_bitmap *));
 #endif
 
 extern int dollar_dollar_pid;
@@ -474,8 +474,8 @@ shell_control_structure (type)
     case cm_until:
     case cm_if:
     case cm_for:
-#if defined (SGSH)
-    case cm_sgsh:
+#if defined (DGSH)
+    case cm_dgsh:
 #endif
     case cm_group:
     case cm_function_def:
@@ -645,13 +645,13 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 	 control and call execute_command () on the command again. */
       line_number_for_err_trap = line_number;
       tcmd = make_command_string (command);
-#if defined (SGSH)
-      DPRINTF("sgsh_nest_level: %d, should be compound command: %s",
-		  sgsh_nest_level, make_command_string(command));
+#if defined (DGSH)
+      DPRINTF("dgsh_nest_level: %d, should be compound command: %s",
+		  dgsh_nest_level, make_command_string(command));
       // XXX: decide black list of command types to not change pipes
-      if (sgsh_nest_level >= 0 && command->type != cm_connection &&
+      if (dgsh_nest_level >= 0 && command->type != cm_connection &&
           command->type != cm_group)
-        change_sgsh_pipes(&pipe_in, &pipe_out, command);
+        change_dgsh_pipes(&pipe_in, &pipe_out, command);
 #endif
       DPRINTF("go make_child()\n");
       paren_pid = make_child (savestring (tcmd), asynchronous);
@@ -672,15 +672,15 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 	     COMMAND struct.  Need to keep in mind that execute_in_subshell
 	     runs the exit trap for () subshells itself. */
 	  /* This handles { command; } & */
-#if defined (SGSH)
-	  s = user_subshell == 0 && (command->type == cm_group || command->type == cm_sgsh) && pipe_in == NO_PIPE && pipe_out == NO_PIPE && asynchronous;
+#if defined (DGSH)
+	  s = user_subshell == 0 && (command->type == cm_group || command->type == cm_dgsh) && pipe_in == NO_PIPE && pipe_out == NO_PIPE && asynchronous;
 #else
 	  s = user_subshell == 0 && command->type == cm_group && pipe_in == NO_PIPE && pipe_out == NO_PIPE && asynchronous;
 #endif
 	  /* run exit trap for : | { ...; } and { ...; } | : */
 	  /* run exit trap for : | ( ...; ) and ( ...; ) | : */
-#if defined (SGSH)
-	  s += user_subshell == 0 && (command->type == cm_group || command->type == cm_sgsh) && (pipe_in != NO_PIPE || pipe_out != NO_PIPE) && asynchronous == 0;
+#if defined (DGSH)
+	  s += user_subshell == 0 && (command->type == cm_group || command->type == cm_dgsh) && (pipe_in != NO_PIPE || pipe_out != NO_PIPE) && asynchronous == 0;
 #else
 	  s += user_subshell == 0 && command->type == cm_group && (pipe_in != NO_PIPE || pipe_out != NO_PIPE) && asynchronous == 0;
 #endif
@@ -724,43 +724,43 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 	      exec_result = wait_for (paren_pid);
 	      DPRINTF("exec_result: %d\n", exec_result);
 
-#if defined (SGSH)
-              if (sgsh_nest_level >= 0 &&
-		  !strncmp(make_command_string(command), "../sgsh_conc", 12))
+#if defined (DGSH)
+              if (dgsh_nest_level >= 0 &&
+		  !strncmp(make_command_string(command), "../dgsh_conc", 12))
 		//XXX: never executed: investigate
                 {
-                  struct sgsh_conc *current_sgsh_conc =
-			  sgsh_conc_fds[sgsh_nest_level];
-                  struct sgsh_conc *current_sgsh_proc =
-			  sgsh_proc_fds[sgsh_nest_level];
+                  struct dgsh_conc *current_dgsh_conc =
+			  dgsh_conc_fds[dgsh_nest_level];
+                  struct dgsh_conc *current_dgsh_proc =
+			  dgsh_proc_fds[dgsh_nest_level];
 		  DPRINTF("End conc command %s at nest level %d\n",
 			make_command_string(command),
-			sgsh_nest_level);
+			dgsh_nest_level);
 		  if (!strncmp(make_command_string(command),
-					  "../sgsh_conc -o", 15))
+					  "../dgsh_conc -o", 15))
 		    {
-                      free(current_sgsh_conc->outfda);
-                      current_sgsh_conc->outfda = NULL;
-                      free(current_sgsh_proc->outfda);
-                      current_sgsh_proc->outfda = NULL;
+                      free(current_dgsh_conc->outfda);
+                      current_dgsh_conc->outfda = NULL;
+                      free(current_dgsh_proc->outfda);
+                      current_dgsh_proc->outfda = NULL;
 		    }
 		  else if (!strncmp(make_command_string(command),
-					  "../sgsh_conc -i", 15))
+					  "../dgsh_conc -i", 15))
 		    {
-                      free(current_sgsh_conc->infda);
-                      current_sgsh_conc->infda = NULL;
-                      free(current_sgsh_proc->infda);
-                      current_sgsh_proc->infda = NULL;
+                      free(current_dgsh_conc->infda);
+                      current_dgsh_conc->infda = NULL;
+                      free(current_dgsh_proc->infda);
+                      current_dgsh_proc->infda = NULL;
 		    }
 
-		  if (current_sgsh_conc->outfda == NULL &&
-		      current_sgsh_conc->infda == NULL &&
-		      current_sgsh_proc->outfda == NULL &&
-		      current_sgsh_proc->infda == NULL)
+		  if (current_dgsh_conc->outfda == NULL &&
+		      current_dgsh_conc->infda == NULL &&
+		      current_dgsh_proc->outfda == NULL &&
+		      current_dgsh_proc->infda == NULL)
 		    {
-                      free(sgsh_conc_fds[sgsh_nest_level]);
-                      free(sgsh_proc_fds[sgsh_nest_level]);
-                      sgsh_nest_level--;
+                      free(dgsh_conc_fds[dgsh_nest_level]);
+                      free(dgsh_proc_fds[dgsh_nest_level]);
+                      dgsh_nest_level--;
 		    }
                 }
 #endif
@@ -883,29 +883,29 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 
   QUIT;
 
-#if defined (SGSH)
-  DPRINTF("sgsh_nest_level: %d, command: %s",
-		  sgsh_nest_level, make_command_string(command));
+#if defined (DGSH)
+  DPRINTF("dgsh_nest_level: %d, command: %s",
+		  dgsh_nest_level, make_command_string(command));
   // XXX: decide black list of command types to not change pipes
-  if (sgsh_nest_level >= 0 && command->type != cm_connection &&
-      command->type != cm_group && command->type != cm_sgsh &&
+  if (dgsh_nest_level >= 0 && command->type != cm_connection &&
+      command->type != cm_group && command->type != cm_dgsh &&
       /* If no pipe in, no pipe out, and not asynchronous
        * then this is a command substitution.
        * We don't want to change its pipes.
        * TODO: it does not work for a pipeline of command substitutions
        */
       (pipe_in != NO_PIPE || pipe_out != NO_PIPE || asynchronous == 1))
-    change_sgsh_pipes(&pipe_in, &pipe_out, command);
+    change_dgsh_pipes(&pipe_in, &pipe_out, command);
 
-  // Unset sgsh path from path
+  // Unset dgsh path from path
   SHELL_VAR *path = find_variable("PATH");
-  char *ppath = strstr(path->value, sgshpath);
+  char *ppath = strstr(path->value, dgshpath);
   if (ppath)
     {
-       DPRINTF("Unset sgshpath from path");
-       DPRINTF("sgshpath in path: %s", ppath);
-       ppath += strlen(sgshpath) + 1; //<sgshpath>:
-       DPRINTF("sgshpath not in path: %s", ppath);
+       DPRINTF("Unset dgshpath from path");
+       DPRINTF("dgshpath in path: %s", ppath);
+       ppath += strlen(dgshpath) + 1; //<dgshpath>:
+       DPRINTF("dgshpath not in path: %s", ppath);
        bind_variable("PATH", ppath, 0);
     }
 #endif
@@ -1095,10 +1095,10 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
       executing_group_command--;
       break;
 
-#if defined (SGSH)
+#if defined (DGSH)
     /* Heavily similar to a group command's execution */
-    case cm_sgsh:
-      DPRINTF("cm_sgsh case: pipe_in: %d, pipe_out: %d\n",
+    case cm_dgsh:
+      DPRINTF("cm_dgsh case: pipe_in: %d, pipe_out: %d\n",
 		      pipe_in, pipe_out);
       if (asynchronous)
 	{
@@ -1109,10 +1109,10 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 	}
       else
 	{
-	  if (ignore_return && command->value.Sgsh->command)
-	    command->value.Sgsh->command->flags |= CMD_IGNORE_RETURN;
+	  if (ignore_return && command->value.Dgsh->command)
+	    command->value.Dgsh->command->flags |= CMD_IGNORE_RETURN;
 	  exec_result =
-	    execute_command_internal (command->value.Sgsh->command,
+	    execute_command_internal (command->value.Dgsh->command,
 				      asynchronous, pipe_in, pipe_out,
 				      fds_to_close);
 	}
@@ -1671,15 +1671,15 @@ execute_in_subshell (command, asynchronous, pipe_in, pipe_out, fds_to_close)
   if (fds_to_close)
     close_fd_bitmap (fds_to_close);
 
-#if defined (SGSH)
-  /* We have to create the sgsh conc in this function to take note
-   * of any input/output pipes for an upcoming sgsh command
+#if defined (DGSH)
+  /* We have to create the dgsh conc in this function to take note
+   * of any input/output pipes for an upcoming dgsh command
    * In do_piping() they will be dupped to stdin/stdout and
    * execute_command_internal() will be called with
    * pipe_in = NO_PIPE, pipe_out = NO_PIPE
    *  XXX: ignoring exit status
    */
-  create_sgsh_conc(command, &pipe_in, &pipe_out, fds_to_close);
+  create_dgsh_conc(command, &pipe_in, &pipe_out, fds_to_close);
 #endif
 
   DPRINTF("go do piping\n");
@@ -2481,8 +2481,8 @@ execute_pipeline (command, asynchronous, pipe_in, pipe_out, fds_to_close)
 	 cmd->value.Connection && cmd->value.Connection->connector == '|')
     {
       /* Make a pipeline between the two commands. */
-#if defined (SGSH)
-      if (sgsh)
+#if defined (DGSH)
+      if (dgsh)
 	{
         re = socketpair (AF_UNIX, SOCK_DGRAM, 0, fildes);
 	DPRINTF("Created socketpair %d -- %d\n", fildes[0], fildes[1]);
@@ -2674,11 +2674,11 @@ execute_connection (command, asynchronous, pipe_in, pipe_out, fds_to_close)
 	 if we are currently in a subshell via `( xxx )', or if job
 	 control is not active then the standard input for an
 	 asynchronous command is forced to /dev/null. */
-#if defined (JOB_CONTROL) && defined (SGSH)
-      if ((subshell_environment || !job_control) && !stdin_redir && sgsh_nest_level < 0)
+#if defined (JOB_CONTROL) && defined (DGSH)
+      if ((subshell_environment || !job_control) && !stdin_redir && dgsh_nest_level < 0)
 #endif
-#if defined (SGSH)
-      if (!stdin_redir && sgsh_nest_level < 0)
+#if defined (DGSH)
+      if (!stdin_redir && dgsh_nest_level < 0)
 #else /* JOB_CONTROL */
       if (!stdin_redir)
 #endif
@@ -4164,33 +4164,33 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
   DPRINTF("dofork?: %d\n", dofork);
   if (dofork)
     {
-#if defined (SGSH)
-      if (sgsh && !executing_group_command)
+#if defined (DGSH)
+      if (dgsh && !executing_group_command)
         {
-	  if ((sgsh_nest_level >= 0 &&
-               sgsh_proc_fds[sgsh_nest_level]->output_type) || pipe_in >= 0)
+	  if ((dgsh_nest_level >= 0 &&
+               dgsh_proc_fds[dgsh_nest_level]->output_type) || pipe_in >= 0)
 	    {
-	      putenv("SGSH_IN=1");
-              update_export_env_inplace ("SGSH_IN=", 8, "1");
-	      set_sgsh_path();
+	      putenv("DGSH_IN=1");
+              update_export_env_inplace ("DGSH_IN=", 8, "1");
+	      set_dgsh_path();
 	    }
 	  else
 	    {
-	      putenv("SGSH_IN=0");
-              update_export_env_inplace ("SGSH_IN=", 8, "0");
+	      putenv("DGSH_IN=0");
+              update_export_env_inplace ("DGSH_IN=", 8, "0");
 	    }
-	  if ((sgsh_nest_level >= 0 &&
-	       !sgsh_proc_fds[sgsh_nest_level]->output_type) ||
+	  if ((dgsh_nest_level >= 0 &&
+	       !dgsh_proc_fds[dgsh_nest_level]->output_type) ||
 	       pipe_out == 0 || pipe_out > 1)
 	    {
-	      putenv("SGSH_OUT=1");
-              update_export_env_inplace ("SGSH_OUT=", 9, "1");
-	      set_sgsh_path();
+	      putenv("DGSH_OUT=1");
+              update_export_env_inplace ("DGSH_OUT=", 9, "1");
+	      set_dgsh_path();
 	    }
 	  else
 	    {
-	      putenv("SGSH_OUT=0");
-              update_export_env_inplace ("SGSH_OUT=", 9, "0");
+	      putenv("DGSH_OUT=0");
+              update_export_env_inplace ("DGSH_OUT=", 9, "0");
 	    }
 	}
 #endif
@@ -5663,22 +5663,22 @@ close_all_files ()
 #endif /* PROCESS_SUBSTITUTION */
 #endif
 
-#if defined (SGSH)
+#if defined (DGSH)
 
 /**
- * Prepend sgsh installation path to standard path
+ * Prepend dgsh installation path to standard path
  */
 static void
-set_sgsh_path()
+set_dgsh_path()
 {
   SHELL_VAR *path = find_variable("PATH");
-  DPRINTF("%s(), path: %s, sgshpath: %s",
-		__func__, path->value, sgshpath);
-  if (strncmp(path->value, sgshpath, 19))
+  DPRINTF("%s(), path: %s, dgshpath: %s",
+		__func__, path->value, dgshpath);
+  if (strncmp(path->value, dgshpath, 19))
     {
       int newlen = strlen(path->value) + 20 + 1;
       char newpath[newlen];
-      sprintf(newpath, "%s:%s", sgshpath, path->value);
+      sprintf(newpath, "%s:%s", dgshpath, path->value);
       bind_variable("PATH", newpath, 0);
       DPRINTF("%s(): after prepending, path: %s",
 		__func__, newpath);
@@ -5693,21 +5693,21 @@ static void
 create_conc_structures(n, isoutput)
 	int n; int isoutput;
 {
-  struct sgsh_conc *current_sgsh_conc = sgsh_conc_fds[sgsh_nest_level];
-  struct sgsh_conc *current_sgsh_proc = sgsh_proc_fds[sgsh_nest_level];
+  struct dgsh_conc *current_dgsh_conc = dgsh_conc_fds[dgsh_nest_level];
+  struct dgsh_conc *current_dgsh_proc = dgsh_proc_fds[dgsh_nest_level];
   if (isoutput)
     {
-      current_sgsh_conc->outfda = (int *)xmalloc(sizeof(int) * n);
-      current_sgsh_conc->outfda_size = n;
-      current_sgsh_proc->outfda = (int *)xmalloc(sizeof(int) * n);
-      current_sgsh_proc->outfda_size = n;
+      current_dgsh_conc->outfda = (int *)xmalloc(sizeof(int) * n);
+      current_dgsh_conc->outfda_size = n;
+      current_dgsh_proc->outfda = (int *)xmalloc(sizeof(int) * n);
+      current_dgsh_proc->outfda_size = n;
     }
   else
     {
-      current_sgsh_conc->infda = (int *)xmalloc(sizeof(int) * n);
-      current_sgsh_conc->infda_size = n;
-      current_sgsh_proc->infda = (int *)xmalloc(sizeof(int) * n);
-      current_sgsh_proc->infda_size = n;
+      current_dgsh_conc->infda = (int *)xmalloc(sizeof(int) * n);
+      current_dgsh_conc->infda_size = n;
+      current_dgsh_proc->infda = (int *)xmalloc(sizeof(int) * n);
+      current_dgsh_proc->infda_size = n;
     }
 }
 
@@ -5739,8 +5739,8 @@ execute_conc_command(conc, n, isoutput, pipe, fds_to_close)
     }
 
   create_conc_structures(n, isoutput);
-  struct sgsh_conc *current_sgsh_conc = sgsh_conc_fds[sgsh_nest_level];
-  struct sgsh_conc *current_sgsh_proc = sgsh_proc_fds[sgsh_nest_level];
+  struct dgsh_conc *current_dgsh_conc = dgsh_conc_fds[dgsh_nest_level];
+  struct dgsh_conc *current_dgsh_proc = dgsh_proc_fds[dgsh_nest_level];
 
   DPRINTF("go execute concentrator command: %s\n",
 		  make_command_string(conc));
@@ -5756,48 +5756,48 @@ execute_conc_command(conc, n, isoutput, pipe, fds_to_close)
 	   * The situation we are in means both an output and an input
 	   * concentrator will be created.
 	   */
-          current_sgsh_conc->noinput = 1;
-          current_sgsh_proc->noinput = 1;
+          current_dgsh_conc->noinput = 1;
+          current_dgsh_proc->noinput = 1;
 	}
-      DPRINTF("noinput set to: %d", current_sgsh_proc->noinput);
-      current_sgsh_conc->output_type++;
-      current_sgsh_proc->output_type++;
+      DPRINTF("noinput set to: %d", current_dgsh_proc->noinput);
+      current_dgsh_conc->output_type++;
+      current_dgsh_proc->output_type++;
       for (i = 0; i < n; i++)
 	{
-          current_sgsh_conc->outfda[i] = sp[i][1];
-	  current_sgsh_proc->outfda[i] = sp[i][0];
+          current_dgsh_conc->outfda[i] = sp[i][1];
+	  current_dgsh_proc->outfda[i] = sp[i][0];
 	  DPRINTF("set scatter conc %d fd to %d\n", i, sp[i][1]);
 	  DPRINTF("set scatter proc %d fd to %d\n", i, sp[i][0]);
 	}
       re = execute_command_internal(conc, 0, *pipe,
-		      SGSH_CONC_PIPES, fds_to_close);
+		      DGSH_CONC_PIPES, fds_to_close);
     }
   else
     { // gather block
-      if (current_sgsh_conc->output_type == 1)
-        current_sgsh_conc->output_type++;
-      if (current_sgsh_proc->output_type == 1)
-        current_sgsh_proc->output_type++;
+      if (current_dgsh_conc->output_type == 1)
+        current_dgsh_conc->output_type++;
+      if (current_dgsh_proc->output_type == 1)
+        current_dgsh_proc->output_type++;
       for (i = 0; i < n; i++)
         {
-          current_sgsh_conc->infda[i] = sp[i][0];
-	  current_sgsh_proc->infda[i] = sp[i][1];
+          current_dgsh_conc->infda[i] = sp[i][0];
+	  current_dgsh_proc->infda[i] = sp[i][1];
 	  DPRINTF("set gather conc %d fd to %d\n", i, sp[i][0]);
 	  DPRINTF("set gather proc %d fd to %d\n", i, sp[i][1]);
         }
-      re = execute_command_internal(conc, 0, SGSH_CONC_PIPES,
+      re = execute_command_internal(conc, 0, DGSH_CONC_PIPES,
 			  *pipe, fds_to_close);
     }
   close(*pipe);
-  //*pipe = current_sgsh_proc->fda[0];
-  //current_sgsh_proc->fda[0] = -1;
+  //*pipe = current_dgsh_proc->fda[0];
+  //current_dgsh_proc->fda[0] = -1;
   *pipe = NO_PIPE;
   for (i = 0; i < n; i++)
     close(sp[i][isoutput]);
-  DPRINTF("sgsh-conc %s (output type: %d) at level %d returned %d\n",
+  DPRINTF("dgsh-conc %s (output type: %d) at level %d returned %d\n",
 			  (isoutput ? "output" : "input"),
-			  current_sgsh_conc->output_type,
-			  sgsh_nest_level, re);
+			  current_dgsh_conc->output_type,
+			  dgsh_nest_level, re);
   return re;
 }
 
@@ -5808,7 +5808,7 @@ execute_conc_command(conc, n, isoutput, pipe, fds_to_close)
  * i.e. | {{ ... }} | , then the input concentrator
  * (the one that multiplexes outputs) is fired with
  * the -r argument to pass the message block to its origin
- * in most cases (see the sgsh-conc source for more details)
+ * in most cases (see the dgsh-conc source for more details)
  */
 static COMMAND *
 create_conc_command(fds, type, prog, output, noinput)
@@ -5841,7 +5841,7 @@ create_conc_command(fds, type, prog, output, noinput)
   conc_el[1].redirect = 0;
   conc = make_simple_command(conc_el[1], conc);
 
-  sprintf(prog, "%s/sgsh-conc", sgshpath);
+  sprintf(prog, "%s/dgsh-conc", dgshpath);
   conc_el[0].word = alloc_word_desc();
   conc_el[0].word->word = prog;
   conc_el[0].redirect = 0;
@@ -5851,17 +5851,17 @@ create_conc_command(fds, type, prog, output, noinput)
 }
 
 /**
- * Create and fire an sgsh concentrator or a pair of them
+ * Create and fire an dgsh concentrator or a pair of them
  * in case of a | {{ ... }} |
  */
 static int
-create_sgsh_conc (command, pipe_in, pipe_out, fds_to_close)
+create_dgsh_conc (command, pipe_in, pipe_out, fds_to_close)
 	COMMAND *command; int *pipe_in; int *pipe_out;
 	struct fd_bitmap *fds_to_close;
 {
   int re = EXECUTION_SUCCESS;
 
-  if (command->type == cm_sgsh)
+  if (command->type == cm_dgsh)
     {
       char fds[3];
       char prog[100];
@@ -5875,36 +5875,36 @@ create_sgsh_conc (command, pipe_in, pipe_out, fds_to_close)
       DPRINTF("CONCENTRATOR ZONE\n");
       DPRINTF("pipe_in: %d, pipe_out: %d\n", *pipe_in, *pipe_out);
 
-      sgsh_nest_level++;
-      if (!sgsh_conc_fds)
-        sgsh_conc_fds = (struct sgsh_conc **)xmalloc(sizeof(struct sgsh_conc *));
+      dgsh_nest_level++;
+      if (!dgsh_conc_fds)
+        dgsh_conc_fds = (struct dgsh_conc **)xmalloc(sizeof(struct dgsh_conc *));
       else
-        sgsh_conc_fds = (struct sgsh_conc **)xrealloc(sgsh_conc_fds,
-			sizeof(struct sgsh_conc *) * (sgsh_nest_level+1));
-      sgsh_conc_fds[sgsh_nest_level] = (struct sgsh_conc *)xmalloc(
-		      sizeof(struct sgsh_conc));
-      memset(sgsh_conc_fds[sgsh_nest_level], 0, sizeof(struct sgsh_conc));
+        dgsh_conc_fds = (struct dgsh_conc **)xrealloc(dgsh_conc_fds,
+			sizeof(struct dgsh_conc *) * (dgsh_nest_level+1));
+      dgsh_conc_fds[dgsh_nest_level] = (struct dgsh_conc *)xmalloc(
+		      sizeof(struct dgsh_conc));
+      memset(dgsh_conc_fds[dgsh_nest_level], 0, sizeof(struct dgsh_conc));
 
-      if (!sgsh_proc_fds)
-        sgsh_proc_fds = (struct sgsh_conc **)xmalloc(sizeof(struct sgsh_conc *));
+      if (!dgsh_proc_fds)
+        dgsh_proc_fds = (struct dgsh_conc **)xmalloc(sizeof(struct dgsh_conc *));
       else
-        sgsh_proc_fds = (struct sgsh_conc **)xrealloc(sgsh_proc_fds,
-			sizeof(struct sgsh_conc *) * (sgsh_nest_level+1));
-      sgsh_proc_fds[sgsh_nest_level] = (struct sgsh_conc *)xmalloc(
-		      sizeof(struct sgsh_conc));
-      memset(sgsh_proc_fds[sgsh_nest_level], 0, sizeof(struct sgsh_conc));
+        dgsh_proc_fds = (struct dgsh_conc **)xrealloc(dgsh_proc_fds,
+			sizeof(struct dgsh_conc *) * (dgsh_nest_level+1));
+      dgsh_proc_fds[dgsh_nest_level] = (struct dgsh_conc *)xmalloc(
+		      sizeof(struct dgsh_conc));
+      memset(dgsh_proc_fds[dgsh_nest_level], 0, sizeof(struct dgsh_conc));
 
       /* Create the command in reverse; it is stored in a LIFO way */
-      get_sgsh_block_comm_n(command->value.Sgsh->command, &n);
+      get_dgsh_block_comm_n(command->value.Dgsh->command, &n);
       sprintf(fds, "%d", n);
-      DPRINTF("%d procs in sgsh group\n", n);
+      DPRINTF("%d procs in dgsh group\n", n);
 
       wait_el.word = alloc_word_desc();
       wait_el.word->word = wait_st;
       wait_el.redirect = 0;
       wait = make_simple_command(wait_el, (COMMAND *)NULL);
       DPRINTF("Inject wait command in multipipe block");
-      command->value.Sgsh->command->value.Connection->second = wait;
+      command->value.Dgsh->command->value.Connection->second = wait;
 
       output = 1;
       if (*pipe_in == NO_PIPE)
@@ -5926,7 +5926,7 @@ create_sgsh_conc (command, pipe_in, pipe_out, fds_to_close)
  * that exist in a concentrator block.
  */
 static int
-get_sgsh_block_comm_n (command, n)
+get_dgsh_block_comm_n (command, n)
      COMMAND *command; int *n;
 {
   if (!command)
@@ -5939,8 +5939,8 @@ get_sgsh_block_comm_n (command, n)
     {
       if (command->value.Connection->connector == '|')
         (*n)--;
-      get_sgsh_block_comm_n(command->value.Connection->first, n);
-      get_sgsh_block_comm_n(command->value.Connection->second, n);
+      get_dgsh_block_comm_n(command->value.Connection->first, n);
+      get_dgsh_block_comm_n(command->value.Connection->second, n);
     }
   return 0;
 }
@@ -5948,57 +5948,57 @@ get_sgsh_block_comm_n (command, n)
 /**
  * Substitute a command's input or output pipe with
  * a socketpair edge that communicates with an
- * sgsh concentrator.
+ * dgsh concentrator.
  */
-static void change_sgsh_pipes(pipe_in, pipe_out, command)
+static void change_dgsh_pipes(pipe_in, pipe_out, command)
      int *pipe_in; int *pipe_out; COMMAND *command;
 {
-  struct sgsh_conc *sgshp = sgsh_proc_fds[sgsh_nest_level];
+  struct dgsh_conc *dgshp = dgsh_proc_fds[dgsh_nest_level];
   DPRINTF("output_type: %d, outsize: %d, insize: %d, out_index: %d,"
 		  "in_index: %d, pipe_in: %d, pipe_out: %d\n",
-		  sgshp->output_type, sgshp->outfda_size,
-		  sgshp->infda_size, sgshp->out_index,
-		  sgshp->in_index, *pipe_in, *pipe_out);
+		  dgshp->output_type, dgshp->outfda_size,
+		  dgshp->infda_size, dgshp->out_index,
+		  dgshp->in_index, *pipe_in, *pipe_out);
 
   /* Concentrators are simple commands, but we don't want
    * to change their pipes; we do that in do_piping().
    * Concentrator commmands successfully fail the below conditions
    */
-  if ((sgshp->output_type == 2 && (*pipe_in == NO_PIPE ||
+  if ((dgshp->output_type == 2 && (*pipe_in == NO_PIPE ||
        *pipe_out == NO_PIPE)) ||
 	// Output conc  with no input: don't change its pipes
-      (sgshp->output_type == 1 && *pipe_in == NO_PIPE &&
-       !sgshp->noinput) ||
-      (!sgshp->output_type && *pipe_out == NO_PIPE))
+      (dgshp->output_type == 1 && *pipe_in == NO_PIPE &&
+       !dgshp->noinput) ||
+      (!dgshp->output_type && *pipe_out == NO_PIPE))
     {
       DPRINTF("go change pipe. command: %s, all out pipes: %d,"
 		      "in pipes: %d, pipe_in: %d, pipe_out: %d\n"
 		      "noinput: %d",
 		      make_command_string(command),
-		      sgshp->outfda_size, sgshp->infda_size,
-		      *pipe_in, *pipe_out, sgshp->noinput);
+		      dgshp->outfda_size, dgshp->infda_size,
+		      *pipe_in, *pipe_out, dgshp->noinput);
       int j = 0;
       int isboth = 0;
 
-      if (sgshp->output_type == 2)
+      if (dgshp->output_type == 2)
 	isboth = 1;
 
-      if ((sgshp->output_type == 1 || isboth) && *pipe_in == NO_PIPE)
+      if ((dgshp->output_type == 1 || isboth) && *pipe_in == NO_PIPE)
 	{
-	  assert(sgshp->out_index < sgshp->outfda_size);
-	  *pipe_in = sgshp->outfda[sgshp->out_index];
-	  sgshp->out_index++;
+	  assert(dgshp->out_index < dgshp->outfda_size);
+	  *pipe_in = dgshp->outfda[dgshp->out_index];
+	  dgshp->out_index++;
 	}
 
-      if ((sgshp->output_type == 0 || isboth) && *pipe_out == NO_PIPE)
+      if ((dgshp->output_type == 0 || isboth) && *pipe_out == NO_PIPE)
 	{
-	  assert(sgshp->in_index < sgshp->infda_size);
-	  *pipe_out = sgshp->infda[sgshp->in_index];
-	  sgshp->in_index++;
+	  assert(dgshp->in_index < dgshp->infda_size);
+	  *pipe_out = dgshp->infda[dgshp->in_index];
+	  dgshp->in_index++;
 	}
     }
-  DPRINTF("sgsh_procs: pipe_in: %d, pipe_out: %d, out_index: %d, in_index: %d\n",
-		  *pipe_in, *pipe_out, sgshp->out_index, sgshp->in_index);
+  DPRINTF("dgsh_procs: pipe_in: %d, pipe_out: %d, out_index: %d, in_index: %d\n",
+		  *pipe_in, *pipe_out, dgshp->out_index, dgshp->in_index);
 }
 #endif
 
@@ -6030,9 +6030,9 @@ do_piping (pipe_in, pipe_out)
   DPRINTF("1");
   if (pipe_in != NO_PIPE)
     {
-      if (pipe_in == SGSH_CONC_PIPES)
+      if (pipe_in == DGSH_CONC_PIPES)
 	{
-          pipe_in = sgsh_conc_fds[sgsh_nest_level]->infda[0];
+          pipe_in = dgsh_conc_fds[dgsh_nest_level]->infda[0];
 	  conc_isoutput = 0;
 	}
       DPRINTF("dup-close fd %d to get stdin\n", pipe_in);
@@ -6047,9 +6047,9 @@ do_piping (pipe_in, pipe_out)
     }
   if (pipe_out != NO_PIPE)
     {
-      if (pipe_out == SGSH_CONC_PIPES)
+      if (pipe_out == DGSH_CONC_PIPES)
 	{
-          pipe_out = sgsh_conc_fds[sgsh_nest_level]->outfda[0];
+          pipe_out = dgsh_conc_fds[dgsh_nest_level]->outfda[0];
 	  conc_isoutput = 1;
 	}
       if (pipe_out != REDIRECT_BOTH)
@@ -6075,10 +6075,10 @@ do_piping (pipe_in, pipe_out)
   if (conc_isoutput >= 0)
     {
       int i = 0;
-      struct sgsh_conc *this = sgsh_conc_fds[sgsh_nest_level];
+      struct dgsh_conc *this = dgsh_conc_fds[dgsh_nest_level];
       int *fda = NULL;
       int size = -1;
-      assert(sgsh_nest_level >= 0);
+      assert(dgsh_nest_level >= 0);
       if (conc_isoutput)
 	{
           fda = this->outfda;

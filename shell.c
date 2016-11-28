@@ -231,10 +231,10 @@ int posixly_correct = 1;	/* Non-zero means posix.2 superset. */
 int posixly_correct = 0;	/* Non-zero means posix.2 superset. */
 #endif
 
-#if defined (SGSH)
-int sgsh = 0;
-int sgsh_negotiation = 0;
-char *sgshpath = "/usr/local/sgsh/bin";
+#if defined (DGSH)
+int dgsh = 0;
+int dgsh_negotiation = 0;
+char *dgshpath = "/usr/local/dgsh/bin";
 #endif
 
 /* Some long-winded argument names.  These are obviously new. */
@@ -271,9 +271,9 @@ static const struct {
 #if defined (WORDEXP_OPTION)
   { "wordexp", Int, &wordexp_only, (char **)0x0 },
 #endif
-#if defined (SGSH)
-  { "sgsh", Int, &sgsh, (char **)0x0 },
-  { "sgsh-negotiate", Int, &sgsh_negotiation, (char **)0x0 },
+#if defined (DGSH)
+  { "dgsh", Int, &dgsh, (char **)0x0 },
+  { "dgsh-negotiate", Int, &dgsh_negotiation, (char **)0x0 },
 #endif
   { (char *)0x0, Int, (int *)0x0, (char **)0x0 }
 };
@@ -506,10 +506,10 @@ main (argc, argv, env)
   if (running_setuid && privileged_mode == 0)
     disable_priv_mode ();
 
-#if defined (SGSH)
-  DPRINTF("bash: pgrp: %d, sgsh negotiation %d\n", getpgrp(), sgsh_negotiation);
+#if defined (DGSH)
+  DPRINTF("bash: pgrp: %d, dgsh negotiation %d\n", getpgrp(), dgsh_negotiation);
   char *fds[argc];	// /proc/self/fd/x
-  if (sgsh_negotiation)
+  if (dgsh_negotiation)
     {
       int k;
       int n = 1;
@@ -562,10 +562,10 @@ main (argc, argv, env)
         snprintf(negotiation_title, 100, "%s", argv[0]);
 
       int status;
-      if ((status = sgsh_negotiate(negotiation_title,
+      if ((status = dgsh_negotiate(negotiation_title,
 			      ninputs, NULL, &input_fds, NULL)) != 0)
         {
-          printf("sgsh negotiation failed with status code %d.\n", status);
+          printf("dgsh negotiation failed with status code %d.\n", status);
           exit(1);
         }
 
@@ -800,11 +800,11 @@ main (argc, argv, env)
       sv_strict_posix ("POSIXLY_CORRECT");
     }
 
-#if defined (SGSH)
-  if (sgsh)
+#if defined (DGSH)
+  if (dgsh)
     {
       // To execute exported functions with concise syntax
-      add_alias("call", "bash --sgsh-negotiate -c");
+      add_alias("call", "bash --dgsh-negotiate -c");
       expand_aliases = 1;
     }
 #endif
@@ -899,8 +899,8 @@ main (argc, argv, env)
 
   shell_initialized = 1;
 
-#if defined (SGSH)
-  if (sgsh_negotiation)
+#if defined (DGSH)
+  if (dgsh_negotiation)
     {
       int k;
       for (k = 0; k < argc; k++)
@@ -965,7 +965,7 @@ parse_long_options (argv, arg_start, arg_end)
 
       arg_index++;
     }
-  DPRINTF("sgsh: %d\n", sgsh);
+  DPRINTF("dgsh: %d\n", dgsh);
   return (arg_index);
 }
 

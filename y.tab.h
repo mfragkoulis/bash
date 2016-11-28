@@ -68,8 +68,8 @@ extern int yydebug;
     TIME = 278,
     TIMEOPT = 279,
     TIMEIGN = 280,
-    SGSH_START = 281,
-    SGSH_END = 282,
+    DGSH_START = 281,
+    DGSH_END = 282,
     WORD = 283,
     ASSIGNMENT_WORD = 284,
     REDIR_WORD = 285,
@@ -120,8 +120,8 @@ extern int yydebug;
 #define TIME 278
 #define TIMEOPT 279
 #define TIMEIGN 280
-#define SGSH_START 281
-#define SGSH_END 282
+#define DGSH_START 281
+#define DGSH_END 282
 #define WORD 283
 #define ASSIGNMENT_WORD 284
 #define REDIR_WORD 285

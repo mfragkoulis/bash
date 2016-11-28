@@ -359,16 +359,16 @@ make_group_command (command)
   return (make_command (cm_group, (SIMPLE_COM *)temp));
 }
 
-#if defined (SGSH)
+#if defined (DGSH)
 COMMAND *
-make_sgsh_command (command)
+make_dgsh_command (command)
      COMMAND *command;
 {
-  SGSH_COM *temp;
+  DGSH_COM *temp;
 
-  temp = (SGSH_COM *)xmalloc (sizeof (SGSH_COM));
+  temp = (DGSH_COM *)xmalloc (sizeof (DGSH_COM));
   temp->command = command;
-  return (make_command (cm_sgsh, (SIMPLE_COM *)temp));
+  return (make_command (cm_dgsh, (SIMPLE_COM *)temp));
 }
 #endif
 

@@ -428,8 +428,8 @@ extern int yydebug;
     TIME = 278,
     TIMEOPT = 279,
     TIMEIGN = 280,
-    SGSH_START = 281,
-    SGSH_END = 282,
+    DGSH_START = 281,
+    DGSH_END = 282,
     WORD = 283,
     ASSIGNMENT_WORD = 284,
     REDIR_WORD = 285,
@@ -480,8 +480,8 @@ extern int yydebug;
 #define TIME 278
 #define TIMEOPT 279
 #define TIMEIGN 280
-#define SGSH_START 281
-#define SGSH_END 282
+#define DGSH_START 281
+#define DGSH_END 282
 #define WORD 283
 #define ASSIGNMENT_WORD 284
 #define REDIR_WORD 285
@@ -868,7 +868,7 @@ static const char *const yytname[] =
   "$end", "error", "$undefined", "IF", "THEN", "ELSE", "ELIF", "FI",
   "CASE", "ESAC", "FOR", "SELECT", "WHILE", "UNTIL", "DO", "DONE",
   "FUNCTION", "COPROC", "COND_START", "COND_END", "COND_ERROR", "IN",
-  "BANG", "TIME", "TIMEOPT", "TIMEIGN", "SGSH_START", "SGSH_END", "WORD",
+  "BANG", "TIME", "TIMEOPT", "TIMEIGN", "DGSH_START", "DGSH_END", "WORD",
   "ASSIGNMENT_WORD", "REDIR_WORD", "NUMBER", "ARITH_CMD",
   "ARITH_FOR_EXPRS", "COND_CMD", "AND_AND", "OR_OR", "GREATER_GREATER",
   "LESS_LESS", "LESS_AND", "LESS_LESS_LESS", "GREATER_AND", "SEMI_SEMI",
@@ -879,8 +879,8 @@ static const char *const yytname[] =
   "simple_command_element", "redirection_list", "simple_command",
   "command", "shell_command", "for_command", "arith_for_command",
   "select_command", "case_command", "function_def", "function_body",
-  "subshell", "coproc", "if_command", "group_command", "sgsh_command",
-  "sgsh_block_list", "sgsh_list", "sgsh_pipeline", "arith_command",
+  "subshell", "coproc", "if_command", "group_command", "dgsh_command",
+  "dgsh_block_list", "dgsh_list", "dgsh_pipeline", "arith_command",
   "cond_command", "elif_clause", "case_clause", "pattern_list",
   "case_clause_sequence", "pattern", "list", "compound_list", "list0",
   "list1", "simple_list_terminator", "list_terminator", "newline_list",
@@ -2973,8 +2973,8 @@ yyreduce:
   case 112:
 #line 1017 "./parse.y" /* yacc.c:1646  */
     {
-			  DPRINTF("sgsh command\n");
-			  (yyval.command) = make_sgsh_command ((yyvsp[-1].command));
+			  DPRINTF("dgsh command\n");
+			  (yyval.command) = make_dgsh_command ((yyvsp[-1].command));
 			  
 			}
 #line 2981 "y.tab.c" /* yacc.c:1646  */
@@ -4496,9 +4496,9 @@ STRING_INT_ALIST word_token_alist[] = {
   { "[[", COND_START },
   { "]]", COND_END },
 #endif
-#if defined (SGSH)
-  { "{{", SGSH_START },
-  { "}}", SGSH_END },
+#if defined (DGSH)
+  { "{{", DGSH_START },
+  { "}}", DGSH_END },
 #endif
 #if defined (COPROCESS_SUPPORT)
   { "coproc", COPROC },
@@ -5005,8 +5005,8 @@ static int token_buffer_size;
 static int
 yylex ()
 {
-#if defined (SGSH) && defined (DEBUG)
-  /* sgsh development */
+#if defined (DGSH) && defined (DEBUG)
+  /* dgsh development */
   debug_parser(1);
 #endif
   if (interactive && (current_token == 0 || current_token == '\n'))
@@ -5111,10 +5111,10 @@ static int open_brace_count;
 		parser_state &= ~(PST_CONDCMD|PST_CONDEXPR); \
 	      else if (word_token_alist[i].token == COND_START) \
 		parser_state |= PST_CONDCMD; \
-	      else if (word_token_alist[i].token == SGSH_END) \
-		parser_state &= ~(PST_SGSH|PST_SGSHEXPR); \
-	      else if (word_token_alist[i].token == SGSH_START) \
-		parser_state |= PST_SGSHEXPR; \
+	      else if (word_token_alist[i].token == DGSH_END) \
+		parser_state &= ~(PST_DGSH|PST_DGSHEXPR); \
+	      else if (word_token_alist[i].token == DGSH_START) \
+		parser_state |= PST_DGSHEXPR; \
 	      else if (word_token_alist[i].token == '{') \
 		open_brace_count++; \
 	      else if (word_token_alist[i].token == '}' && open_brace_count) \

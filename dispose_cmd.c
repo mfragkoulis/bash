@@ -85,12 +85,12 @@ dispose_command (command)
 	break;
       }
 
-#if defined (SGSH)
+#if defined (DGSH)
     /* Heavily similar to group command */
-    case cm_sgsh:
+    case cm_dgsh:
       {
-	dispose_command (command->value.Sgsh->command);
-	free (command->value.Sgsh);
+	dispose_command (command->value.Dgsh->command);
+	free (command->value.Dgsh);
 	break;
       }
 #endif

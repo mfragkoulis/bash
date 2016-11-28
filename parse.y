@@ -343,7 +343,7 @@ static REDIRECTEE redir;
 %token IF THEN ELSE ELIF FI CASE ESAC FOR SELECT WHILE UNTIL DO DONE FUNCTION COPROC
 %token COND_START COND_END COND_ERROR
 %token IN BANG TIME TIMEOPT TIMEIGN
-%token SGSH_START SGSH_END
+%token DGSH_START DGSH_END
 
 /* More general tokens. yylex () knows how to make these. */
 %token <word> WORD ASSIGNMENT_WORD REDIR_WORD
@@ -359,12 +359,12 @@ static REDIRECTEE redir;
 
 %type <command> inputunit command pipeline pipeline_command
 %type <command> list list0 list1 compound_list simple_list simple_list1
-		sgsh_block_list sgsh_list sgsh_pipeline
+		dgsh_block_list dgsh_list dgsh_pipeline
 %type <command> simple_command shell_command
 %type <command> for_command select_command case_command group_command
 %type <command> arith_command
 %type <command> cond_command
-%type <command> sgsh_command
+%type <command> dgsh_command
 %type <command> arith_for_command
 %type <command> coproc
 %type <command> function_def function_body if_command elif_clause subshell
@@ -776,7 +776,7 @@ shell_command:	for_command
 			{ $$ = $1; }
 	|	group_command
 			{ $$ = $1; }
-	|	sgsh_command
+	|	dgsh_command
 			{ $$ = $1; }
 	|	arith_command
 			{ $$ = $1; }
@@ -1013,15 +1013,15 @@ group_command:	'{' compound_list '}'
 			{ $$ = make_group_command ($2); }
 	;
 
-sgsh_command:	SGSH_START sgsh_block_list SGSH_END
+dgsh_command:	DGSH_START dgsh_block_list DGSH_END
 			{
-			  DPRINTF("sgsh command\n");
-			  $$ = make_sgsh_command ($2);
+			  DPRINTF("dgsh command\n");
+			  $$ = make_dgsh_command ($2);
 			  
 			}
 	;
 
-sgsh_block_list:newline_list sgsh_list '&' newline_list
+dgsh_block_list:newline_list dgsh_list '&' newline_list
 			{
 			  if ($2->type == cm_connection)
 			    $$ = connect_async_list ($2, (COMMAND *)NULL, '&');
@@ -1030,22 +1030,22 @@ sgsh_block_list:newline_list sgsh_list '&' newline_list
 			}
 	;
 
-sgsh_list:	sgsh_list '&' newline_list sgsh_list
+dgsh_list:	dgsh_list '&' newline_list dgsh_list
 			{
 			  if ($1->type == cm_connection)
 			    $$ = connect_async_list ($1, $4, '&');
 			  else
 			    $$ = command_connect ($1, $4, '&');
 			}
-	|	sgsh_pipeline
+	|	dgsh_pipeline
 			{ $$ = $1; }
 	;
 
-sgsh_pipeline:	simple_command
+dgsh_pipeline:	simple_command
 			{ $$ = clean_simple_command ($1); }
-	|	sgsh_command
+	|	dgsh_command
 			{ $$ = $1; }
-	|	sgsh_pipeline '|' newline_list sgsh_pipeline
+	|	dgsh_pipeline '|' newline_list dgsh_pipeline
 			{ $$ = command_connect ($1, $4, '|'); }
 	;
 
@@ -2151,9 +2151,9 @@ STRING_INT_ALIST word_token_alist[] = {
   { "[[", COND_START },
   { "]]", COND_END },
 #endif
-#if defined (SGSH)
-  { "{{", SGSH_START },
-  { "}}", SGSH_END },
+#if defined (DGSH)
+  { "{{", DGSH_START },
+  { "}}", DGSH_END },
 #endif
 #if defined (COPROCESS_SUPPORT)
   { "coproc", COPROC },
@@ -2660,8 +2660,8 @@ static int token_buffer_size;
 static int
 yylex ()
 {
-#if defined (SGSH) && defined (DEBUG)
-  /* sgsh development */
+#if defined (DGSH) && defined (DEBUG)
+  /* dgsh development */
   debug_parser(1);
 #endif
   if (interactive && (current_token == 0 || current_token == '\n'))
@@ -2766,10 +2766,10 @@ static int open_brace_count;
 		parser_state &= ~(PST_CONDCMD|PST_CONDEXPR); \
 	      else if (word_token_alist[i].token == COND_START) \
 		parser_state |= PST_CONDCMD; \
-	      else if (word_token_alist[i].token == SGSH_END) \
-		parser_state &= ~(PST_SGSH|PST_SGSHEXPR); \
-	      else if (word_token_alist[i].token == SGSH_START) \
-		parser_state |= PST_SGSHEXPR; \
+	      else if (word_token_alist[i].token == DGSH_END) \
+		parser_state &= ~(PST_DGSH|PST_DGSHEXPR); \
+	      else if (word_token_alist[i].token == DGSH_START) \
+		parser_state |= PST_DGSHEXPR; \
 	      else if (word_token_alist[i].token == '{') \
 		open_brace_count++; \
 	      else if (word_token_alist[i].token == '}' && open_brace_count) \

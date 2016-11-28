@@ -124,7 +124,7 @@ int lexical_scoping = 0;
 int no_invisible_vars = 0;
 
 /* Non-zero means look up and remember command names in a hash table, */
-/* sgsh: disable hashing of paths for executables */
+/* dgsh: disable hashing of paths for executables */
 int hashing_enabled = 0;
 
 #if defined (BANG_HISTORY)

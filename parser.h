@@ -46,8 +46,8 @@
 #define PST_HEREDOC	0x020000	/* reading body of here-document */
 #define PST_REPARSE	0x040000	/* re-parsing in parse_string_to_word_list */
 #define PST_REDIRLIST	0x080000	/* parsing a list of redirections preceding a simple command name */
-#define PST_SGSH	0x100000	/* parsing an SGSH graph of commands */
-#define PST_SGSHEXPR	0x200000	/* parsing the guts of {{...}} */
+#define PST_DGSH	0x100000	/* parsing an DGSH graph of commands */
+#define PST_DGSHEXPR	0x200000	/* parsing the guts of {{...}} */
 
 /* Definition of the delimiter stack.  Needed by parse.y and bashhist.c. */
 struct dstack {

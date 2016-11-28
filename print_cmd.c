@@ -90,8 +90,8 @@ static void print_arith_for_command __P((ARITH_FOR_COM *));
 #if defined (SELECT_COMMAND)
 static void print_select_command __P((SELECT_COM *));
 #endif
-#if defined (SGSH)
-static void print_sgsh_command __P((SGSH_COM *));
+#if defined (DGSH)
+static void print_dgsh_command __P((DGSH_COM *));
 #endif
 static void print_group_command __P((GROUP_COM *));
 static void print_case_command __P((CASE_COM *));
@@ -135,9 +135,9 @@ static REDIRECT *deferred_heredocs;
 /* The depth of the group commands that we are currently printing.  This
    includes the group command that is a function body. */
 static int group_command_nesting;
-#if defined (SGSH)
-/* Ditto for sgsh command */
-static int sgsh_command_nesting;
+#if defined (DGSH)
+/* Ditto for dgsh command */
+static int dgsh_command_nesting;
 #endif
 
 
@@ -323,9 +323,9 @@ make_command_string_internal (command)
 	  print_group_command (command->value.Group);
 	  break;
 
-#if defined (SGSH)
-	case cm_sgsh:
-	  print_sgsh_command (command->value.Sgsh);
+#if defined (DGSH)
+	case cm_dgsh:
+	  print_dgsh_command (command->value.Dgsh);
 	  break;
 #endif
 
@@ -706,10 +706,10 @@ print_group_command (group_command)
 
 /* Heavily similar to print_group_command() */
 static void
-print_sgsh_command (sgsh_command)
-     SGSH_COM *sgsh_command;
+print_dgsh_command (dgsh_command)
+     DGSH_COM *dgsh_command;
 {
-  sgsh_command_nesting++;
+  dgsh_command_nesting++;
   cprintf ("{{ ");
 
   if (inside_function_def == 0)
@@ -723,7 +723,7 @@ print_sgsh_command (sgsh_command)
       indentation += indentation_amount;
     }
 
-  make_command_string_internal (sgsh_command->command);
+  make_command_string_internal (dgsh_command->command);
   PRINT_DEFERRED_HEREDOCS ("");
 
   if (inside_function_def)
@@ -740,7 +740,7 @@ print_sgsh_command (sgsh_command)
 
   cprintf ("}}");
 
-  sgsh_command_nesting--;
+  dgsh_command_nesting--;
 }
 
 void
