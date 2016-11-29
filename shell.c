@@ -514,7 +514,7 @@ main (argc, argv, env)
       int k;
       int n = 1;
       int *ninputs = NULL;
-      int *input_fds;
+      int *input_fds = NULL;
 
       memset(fds, 0, sizeof(fds));
 
