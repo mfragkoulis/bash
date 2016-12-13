@@ -234,7 +234,11 @@ int posixly_correct = 0;	/* Non-zero means posix.2 superset. */
 #if defined (DGSH)
 int dgsh = 0;
 int dgsh_negotiation = 0;
-char *dgshpath = "/usr/local/dgsh/bin";
+/* Path where the dgsh-specific commands are installed.
+ * These require negotiation, so they can only be run from within dgsh.
+ * This path is prepended to the environment's PATH
+ */
+char *dgshpath = DGSHPATH;
 #endif
 
 /* Some long-winded argument names.  These are obviously new. */

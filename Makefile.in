@@ -41,6 +41,7 @@ infodir = @infodir@
 includedir = @includedir@
 datadir = @datadir@
 localedir = @localedir@
+libexecdir = @libexecdir@
 
 docdir = @docdir@
 
@@ -131,7 +132,7 @@ CPPFLAGS_FOR_BUILD = @CPPFLAGS_FOR_BUILD@
 LOCAL_CFLAGS = @LOCAL_CFLAGS@ ${DEBUG} ${MALLOC_DEBUG}
 DEFS = @DEFS@
 # dgsh macro definition
-LOCAL_DEFS = @LOCAL_DEFS@ -DDGSH
+LOCAL_DEFS = @LOCAL_DEFS@ -DDGSH -DDGSHPATH='"$(libexecdir)/dgsh"'
 
 LOCALE_DEFS = -DLOCALEDIR='"$(localedir)"' -DPACKAGE='"$(PACKAGE)"'
 
