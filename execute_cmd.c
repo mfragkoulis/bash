@@ -5674,9 +5674,9 @@ set_dgsh_path()
   SHELL_VAR *path = find_variable("PATH");
   DPRINTF("%s(), path: %s, dgshpath: %s",
 		__func__, path->value, dgshpath);
-  if (strncmp(path->value, dgshpath, 19))
+  if (strncmp(path->value, dgshpath, strlen(dgshpath)))
     {
-      int newlen = strlen(path->value) + 20 + 1;
+      int newlen = strlen(path->value) + strlen(dgshpath) + 1;
       char newpath[newlen];
       sprintf(newpath, "%s:%s", dgshpath, path->value);
       bind_variable("PATH", newpath, 0);
