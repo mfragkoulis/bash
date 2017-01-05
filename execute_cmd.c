@@ -636,6 +636,25 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 
   user_subshell = command->type == cm_subshell || ((command->flags & CMD_WANT_SUBSHELL) != 0);
 
+#if defined (DGSH)
+  if (dgsh)
+    {
+      /* Handle pipes inherited from the environment */
+      if (dgsh_in == 1)
+        {
+          assert(pipe_in == NO_PIPE);
+          pipe_in = INHERITED_PIPE;
+          dgsh_in = 0;
+        }
+      if (dgsh_out == 1)
+        {
+          assert(pipe_out == NO_PIPE);
+          pipe_out = INHERITED_PIPE;
+          dgsh_out = 0;
+        }
+    }
+#endif
+
   if (command->type == cm_subshell ||
       (command->flags & (CMD_WANT_SUBSHELL|CMD_FORCE_SUBSHELL)) ||
       (shell_control_structure (command->type) &&
@@ -1108,10 +1127,6 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
     case cm_dgsh:
       DPRINTF("cm_dgsh case: pipe_in: %d, pipe_out: %d, dgsh_in: %d, dgsh_out: %d",
 		      pipe_in, pipe_out, dgsh_in, dgsh_out);
-
-      // No pipe connections in the current bash script, but they are inherited
-      if (pipe_in == NO_PIPE && pipe_out == NO_PIPE && (dgsh_in || dgsh_out))
-        create_dgsh_conc(command, &pipe_in, &pipe_out, fds_to_close);
 
       if (asynchronous)
 	{
@@ -5303,7 +5318,10 @@ execute_disk_command (words, redirects, command_line, pipe_in, pipe_out,
 	 leave it there, in the same format that the user used to
 	 type it in. */
       args = strvec_from_word_list (words, 0, 0, (int *)NULL);
+      DPRINTF("go shell_execve");
       exit (shell_execve (command, args, export_env));
+      DPRINTF("return from shell_execve");
+      fflush(stderr);
     }
   else
     {
@@ -5953,20 +5971,6 @@ create_dgsh_conc (command, pipe_in, pipe_out, fds_to_close)
       wait = make_simple_command(wait_el, (COMMAND *)NULL);
       DPRINTF("Inject wait command in multipipe block");
       command->value.Dgsh->command->value.Connection->second = wait;
-
-      /* Handle pipes inherited from the environment */
-      if (dgsh_in == 1)
-        {
-          assert(*pipe_in == NO_PIPE);
-          *pipe_in = INHERITED_PIPE;
-          dgsh_in = 0;
-        }
-      if (dgsh_out == 1)
-        {
-          assert(*pipe_out == NO_PIPE);
-          *pipe_out = INHERITED_PIPE;
-          dgsh_out = 0;
-        }
 
       output = 1;
       if (*pipe_in == NO_PIPE) // dgsh_in captures inherited DGSH_IN
