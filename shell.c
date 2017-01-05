@@ -233,6 +233,8 @@ int posixly_correct = 0;	/* Non-zero means posix.2 superset. */
 
 #if defined (DGSH)
 int dgsh = 0;
+int dgsh_in = 0;
+int dgsh_out = 0;
 int dgsh_negotiation = 0;
 /* Path where the dgsh-specific commands are installed.
  * These require negotiation, so they can only be run from within dgsh.
@@ -511,7 +513,8 @@ main (argc, argv, env)
     disable_priv_mode ();
 
 #if defined (DGSH)
-  DPRINTF("bash: pgrp: %d, dgsh negotiation %d\n", getpgrp(), dgsh_negotiation);
+  DPRINTF("bash: pgrp: %d, dgsh negotiation %d",
+    getpgrp(), dgsh_negotiation);
   char *fds[argc];	// /proc/self/fd/x
   if (dgsh_negotiation)
     {
@@ -807,6 +810,13 @@ main (argc, argv, env)
 #if defined (DGSH)
   if (dgsh)
     {
+      char *dgshin = getenv("DGSH_IN");
+      char *dgshout = getenv("DGSH_OUT");
+      if (dgshin)
+        dgsh_in = atoi(dgshin);
+      if (dgshout)
+        dgsh_out = atoi(dgshout);
+      DPRINTF("dgsh_in: %d, dgsh_out: %d", dgsh_in, dgsh_out);
       // To execute exported functions with concise syntax
       add_alias("call", "bash --dgsh-negotiate -c");
       expand_aliases = 1;

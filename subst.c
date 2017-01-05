@@ -4797,6 +4797,8 @@ unlink_fifo_list ()
 {
   int saved, i, j;
 
+  DPRINTF("nfifo: %d", nfifo);
+  fflush(stderr);
   if (nfifo == 0)
     return;
 
