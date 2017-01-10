@@ -388,7 +388,6 @@ parse_and_execute (string, from_file, flags)
 		  DPRINTF("go execute command internal\n");
 		  last_result = execute_command_internal
 				(command, 0, NO_PIPE, NO_PIPE, bitmap);
-		  DPRINTF("RETURN %d from execute_command_internal", last_result);
 		}
 	      dispose_command (command);
 	      dispose_fd_bitmap (bitmap);
@@ -435,7 +434,6 @@ parse_and_execute (string, from_file, flags)
 
   if (should_jump_to_top_level)
     jump_to_top_level (code);
-  DPRINTF("return from parse and execute");
   return (last_result);
 }
 

@@ -637,17 +637,19 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
   user_subshell = command->type == cm_subshell || ((command->flags & CMD_WANT_SUBSHELL) != 0);
 
 #if defined (DGSH)
-  if (dgsh)
+  if (dgsh && command->type == cm_dgsh)
     {
       /* Handle pipes inherited from the environment */
       if (dgsh_in == 1)
         {
+	  DPRINTF("Inherit pipe_in");
           assert(pipe_in == NO_PIPE);
           pipe_in = INHERITED_PIPE;
           dgsh_in = 0;
         }
       if (dgsh_out == 1)
         {
+	  DPRINTF("Inherit pipe_out");
           assert(pipe_out == NO_PIPE);
           pipe_out = INHERITED_PIPE;
           dgsh_out = 0;
@@ -907,11 +909,16 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
   QUIT;
 
 #if defined (DGSH)
-  DPRINTF("dgsh_nest_level: %d, command: %s",
-		  dgsh_nest_level, make_command_string(command));
+  DPRINTF("dgsh_nest_level: %d, command: %s, command type: %d",
+		  dgsh_nest_level, make_command_string(command), command->type);
   // XXX: decide black list of command types to not change pipes
   if (dgsh_nest_level >= 0 && command->type != cm_connection &&
       command->type != cm_group && command->type != cm_dgsh &&
+      /* We are executing the internals of a function call (a function
+       * forks to a group command that contains its internals);
+       * we don't want to change any pipes in here.
+       */
+      !executing_group_command &&
       /* If no pipe in, no pipe out, and not asynchronous
        * then this is a command substitution.
        * We don't want to change its pipes.
@@ -922,7 +929,9 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 
   // Unset dgsh path from path
   SHELL_VAR *path = find_variable("PATH");
-  char *ppath = strstr(path->value, dgshpath);
+  char *ppath = NULL;
+  if (path)
+    ppath = strstr(path->value, dgshpath);
   if (ppath)
     {
        DPRINTF("Unset dgshpath from path");
@@ -975,8 +984,6 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 	/* If we forked to do the command, then we must wait_for ()
 	   the child. */
 
-        DPRINTF("already making children: %d, pipe_out: %d",
-                 already_making_children, pipe_out);
 	/* XXX - this is something to watch out for if there are problems
 	   when the shell is compiled without job control.  Don't worry about
 	   whether or not last_made_pid == last_pid; already_making_children
@@ -1024,7 +1031,6 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 	  run_pending_traps ();
 	  jump_to_top_level (ERREXIT);
 	}
-      DPRINTF("exit cm_simple");
 
       break;
 
@@ -1228,15 +1234,11 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
       dispose_redirects (my_undo_list);
     }
 
-  DPRINTF("do redirections");
-
   if (exec_undo_list)
     dispose_redirects (exec_undo_list);
 
   if (my_undo_list || exec_undo_list)
     discard_unwind_frame ("loop_redirections");
-
-  DPRINTF("loop redirections");
 
 #if defined (PROCESS_SUBSTITUTION)
   if (saved_fifo)
@@ -1277,7 +1279,6 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
   last_command_exit_value = exec_result;
   DPRINTF("last command exit value: %d", last_command_exit_value);
   run_pending_traps ();
-  DPRINTF("run traps");
 #if 0
   if (running_trap == 0)
 #endif
@@ -4187,6 +4188,47 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 
   already_forked = dofork = 0;
 
+#if defined (DGSH)
+      if (dgsh)
+        {
+	  /* We are in a dgsh pipeline and a command has
+	   * no pipe_in/out.
+	   * Let's check whether the command inherits a pipe
+	   * from another script that forked it (dgsh_in/out is set) or
+	   * from a function in which it is included
+	   * (executing_group_command is set -- functions are executed
+	   * as group commands).
+	   */
+	  if (pipe_in == NO_PIPE)
+	    {
+	      if (dgsh_in || executing_group_command)
+		{
+	          if (executing_group_command)
+		    {
+	              char *dgshin = getenv("DGSH_IN");
+	              assert(dgshin);
+	              dgsh_in = atoi(dgshin);
+		    }
+		  if (dgsh_in)
+		    pipe_in = INHERITED_PIPE;
+		}
+	    }
+	  if (pipe_out == NO_PIPE)
+	    {
+	      if (dgsh_out || executing_group_command)
+		{
+	          if (executing_group_command)
+		    {
+	              char *dgshout = getenv("DGSH_OUT");
+	              assert(dgshout);
+	              dgsh_out = atoi(dgshout);
+		    }
+		  if (dgsh_out)
+		    pipe_out = INHERITED_PIPE;
+		}
+	    }
+	}
+#endif
   /* If we're in a pipeline or run in the background, set DOFORK so we
      make the child early, before word expansion.  This keeps assignment
      statements from affecting the parent shell's environment when they
@@ -4205,15 +4247,20 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
   if (dofork)
     {
 #if defined (DGSH)
-      if (dgsh && !executing_group_command)
+      if (dgsh)
         {
+	  DPRINTF("for simple command pipe_in: %d, pipe_out: %d, dgsh_in: %d, dgsh_out: %d, executing_group_command: %d", pipe_in, pipe_out, dgsh_in,
+			  dgsh_out, executing_group_command);
 	  if ((dgsh_nest_level >= 0 &&
-               dgsh_proc_fds[dgsh_nest_level]->output_type) ||
-               pipe_in >= 0)
+               (dgsh_proc_fds[dgsh_nest_level]->output_type == 1 ||
+                dgsh_proc_fds[dgsh_nest_level]->output_type == 2)) ||
+               pipe_in != NO_PIPE)
 	    {
+	      DPRINTF("set DGSH_IN=1");
 	      putenv("DGSH_IN=1");
               update_export_env_inplace ("DGSH_IN=", 8, "1");
 	      set_dgsh_path();
+	      if (dgsh_in && pipe_in == INHERITED_PIPE) dgsh_in = 0;
 	    }
 	  else
 	    {
@@ -4221,12 +4268,14 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
               update_export_env_inplace ("DGSH_IN=", 8, "0");
 	    }
 	  if ((dgsh_nest_level >= 0 &&
-	       !dgsh_proc_fds[dgsh_nest_level]->output_type) ||
-	       pipe_out == 0 || pipe_out > 1)
+	       dgsh_proc_fds[dgsh_nest_level]->output_type == 2) ||
+	       pipe_out != NO_PIPE)
 	    {
+	      DPRINTF("set DGSH_OUT=1");
 	      putenv("DGSH_OUT=1");
               update_export_env_inplace ("DGSH_OUT=", 9, "1");
 	      set_dgsh_path();
+	      if (dgsh_out && pipe_out == INHERITED_PIPE) dgsh_out = 0;
 	    }
 	  else
 	    {
@@ -4234,7 +4283,6 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
               update_export_env_inplace ("DGSH_OUT=", 9, "0");
 	    }
 	}
-      DPRINTF("set DGSH");
 #endif
       /* Do this now, because execute_disk_command will do it anyway in the
 	 vast majority of cases. */
@@ -4297,7 +4345,6 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 	  return (result);
 	}
     }
-    DPRINTF("After fork");
 
   /* If we are re-running this as the result of executing the `command'
      builtin, do not expand the command words a second time. */
@@ -4544,7 +4591,6 @@ run_builtin:
 			pipe_in, pipe_out, async, fds_to_close,
 			simple_command->flags);
 
- DPRINTF("return from disk command");
  return_result:
   bind_lastarg (lastarg);
   FREE (command_line);
@@ -5321,7 +5367,6 @@ execute_disk_command (words, redirects, command_line, pipe_in, pipe_out,
       DPRINTF("go shell_execve");
       exit (shell_execve (command, args, export_env));
       DPRINTF("return from shell_execve");
-      fflush(stderr);
     }
   else
     {
@@ -5849,11 +5894,8 @@ execute_conc_command(conc, n, isoutput, pipe, fds_to_close)
         }
       re = execute_command_internal(conc, 0, DGSH_CONC_PIPES,
 			  *pipe, fds_to_close);
-      DPRINTF("Returned result %d", re);
-      fflush(stderr);
+      DPRINTF("Conc command returned %d", re);
     }
-  DPRINTF("Prepare to close pipe");
-  //if (*pipe != INHERITED_PIPE)
   close(*pipe);
   //*pipe = current_dgsh_proc->fda[0];
   //current_dgsh_proc->fda[0] = -1;
