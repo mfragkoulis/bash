@@ -790,16 +790,6 @@ main (argc, argv, env)
 
   shell_initialized = 1;
 
-#if defined (DGSH)
-  if (dgsh_negotiation)
-    {
-      int k;
-      for (k = 0; k < argc; k++)
-	if (fds[k])
-	  free(fds[k]);
-    }
-#endif
-
   /* Read commands until exit condition. */
   reader_loop ();
   exit_shell (last_command_exit_value);
