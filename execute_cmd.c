@@ -4251,6 +4251,8 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
         {
 	  DPRINTF("for simple command pipe_in: %d, pipe_out: %d, dgsh_in: %d, dgsh_out: %d, executing_group_command: %d", pipe_in, pipe_out, dgsh_in,
 			  dgsh_out, executing_group_command);
+
+	  /* Set the command's negotiation environment */
 	  if ((dgsh_nest_level >= 0 &&
                (dgsh_proc_fds[dgsh_nest_level]->output_type == 1 ||
                 dgsh_proc_fds[dgsh_nest_level]->output_type == 2)) ||
@@ -4322,21 +4324,16 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 	{
 	  /* Don't let simple commands that aren't the last command in a
 	     pipeline change $? for the rest of the pipeline (or at all). */
-          DPRINTF("Close pipe?");
 	  if (pipe_out != NO_PIPE)
 	    result = last_command_exit_value;
 	  close_pipes (pipe_in, pipe_out);
-          DPRINTF("Closed pipes");
 #if defined (PROCESS_SUBSTITUTION) && defined (HAVE_DEV_FD)
 	  /* Close /dev/fd file descriptors in the parent after forking the
 	     last child in a (possibly one-element) pipeline.  Defer this
 	     until any running shell function completes. */
-          DPRINTF("pipe_out: %d, variable_context: %d", pipe_out, variable_context);
 	  if (pipe_out == NO_PIPE && variable_context == 0)	/* XXX */
             {
-            DPRINTF("go unlink fifo list");
 	    unlink_fifo_list ();		/* XXX */
-            DPRINTF("returned from unlink fifo list");
             }
 #endif
 	  command_line = (char *)NULL;      /* don't free this. */
@@ -4362,6 +4359,78 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
     }
   else
     words = copy_word_list (simple_command->words);
+
+#if defined (DGSH)
+      if (dgsh && dofork)
+        {
+          ELEMENT dgsh_wrap_el;
+	  FILE *f;
+	  char *text = 0, *m, *command_pathname;
+	  char dgsh_wrap[10];
+	  size_t buf_size;
+
+	  if (words == 0)
+	    {
+	      DPRINTF("command has no words");
+	      goto dgsh_command_ready;
+	    }
+
+	  /* command is wait */
+	  if (STREQ(words->word->word, "wait"))
+	    {
+	      DPRINTF("Command is \"wait\"");
+	      goto dgsh_command_ready;
+	    }
+
+          command_pathname = search_for_command (words->word->word, 0);
+	  DPRINTF("Path to command: %s", command_pathname);
+
+	  /* command is: in the dgsh path or a function;
+	     nothing to do. TODO: consider builtins also */
+	  if (find_function (words->word->word) != 0 ||
+	       strstr(command_pathname, dgshpath))
+	    {
+	      DPRINTF("dgshpath: %s", dgshpath);
+	      DPRINTF("function?: %d", find_function(words->word->word));
+	      DPRINTF("Command %s is in the dgsh path or a function",
+			    command_pathname);
+	      goto dgsh_command_ready;
+	  }
+
+	  /* Open and read 1K characters from command file.
+	     Seek "dgsh-wrap" or "env dgsh" up to the first newline */
+	  f = fopen(command_pathname, "r");
+	  if (!f) {
+	    DPRINTF("dgsh: unable to open file %s", command_pathname);
+	    return (EXECUTION_FAILURE);
+	  }
+	  buf_size = 1000;
+	  text = (char *)malloc(sizeof(char) * buf_size + 1);
+	  fread(text, sizeof(char), buf_size, f);
+	  m = strstr(text, "\n");
+	  if (m == 0) {
+	    text[buf_size] = '\0';
+	    m = text;
+	  }
+	  if (strstr(m, "dgsh-wrap") || strstr(m, "env dgsh")) {
+	    DPRINTF("Command %s invokes dgsh-wrap or env dgsh",
+			    command_pathname);
+	    goto dgsh_command_ready;
+	  }
+
+	  /* Wrap command for dgsh */
+          sprintf(dgsh_wrap, "dgsh-wrap");
+          dgsh_wrap_el.word = alloc_word_desc();
+          dgsh_wrap_el.word->word = dgsh_wrap;
+	  dgsh_wrap_el.redirect = 0;
+          words = make_word_list (dgsh_wrap_el.word, words);
+
+dgsh_command_ready:
+          if (text)
+            free(text);
+
+	}
+#endif
 
   /* It is possible for WORDS not to have anything left in it.
      Perhaps all the words consisted of `$foo', and there was
