@@ -4414,6 +4414,7 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 	  buf_size = 1000;
 	  text = (char *)malloc(sizeof(char) * buf_size + 1);
 	  fread(text, sizeof(char), buf_size, f);
+	  fclose(f);
 	  m = strstr(text, "\n");
 	  if (m == 0) {
 	    text[buf_size] = '\0';
