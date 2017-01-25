@@ -6088,7 +6088,9 @@ create_dgsh_conc (command, pipe_in, pipe_out, fds_to_close)
         sprintf(noinput, "-n");
       conc_out = create_conc_command(fds, type, prog, 1, noinput);	// output conc
       re = execute_conc_command(conc_out, n, 1, pipe_in, fds_to_close);
-      if (*pipe_out != NO_PIPE && re == EXECUTION_SUCCESS)// input conc
+      //if (*pipe_out != NO_PIPE && re == EXECUTION_SUCCESS)// input conc
+      //TODO: the output conc command fails for DRAW_EXIT=1 example/dir.sh
+      if (*pipe_out != NO_PIPE)// input conc
 	{
           output++;	// Always 2
           conc_in = create_conc_command(fds, type, prog, output, noinput);
