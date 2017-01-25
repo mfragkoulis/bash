@@ -104,10 +104,10 @@ extern int errno;
 #define DGSH_CONC_PIPES -3
 #define INHERITED_PIPE -4
 
-/* Know when a group command ({} or function()) is executing
+/* Know when a function() is executing
  * in order not to set the dgsh path
  */
-static int executing_group_command = 0;
+static int executing_function = 0;
 
 /* String literal used to inject a wait command
  * for use in an dgsh multipipe block
@@ -918,7 +918,7 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
        * forks to a group command that contains its internals);
        * we don't want to change any pipes in here.
        */
-      !executing_group_command &&
+      executing_function == 0 &&
       /* If no pipe in, no pipe out, and not asynchronous
        * then this is a command substitution.
        * We don't want to change its pipes.
@@ -1081,9 +1081,8 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
       break;
 
     case cm_group:
-      executing_group_command++;
-      DPRINTF("cm_group case: executing_group_command: %d, pipe_in: %d, pipe_out: %d\n",
-		      executing_group_command, pipe_in, pipe_out);
+      DPRINTF("cm_group case: executing_function: %d, pipe_in: %d, pipe_out: %d\n",
+		      executing_function, pipe_in, pipe_out);
 
       /* This code can be executed from either of two paths: an explicit
 	 '{}' command, or via a function call.  If we are executed via a
@@ -1125,7 +1124,8 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 				      asynchronous, pipe_in, pipe_out,
 				      fds_to_close);
 	}
-      executing_group_command--;
+      if (executing_function > 0)
+        executing_function--;
       break;
 
 #if defined (DGSH)
@@ -4196,34 +4196,34 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 	   * Let's check whether the command inherits a pipe
 	   * from another script that forked it (dgsh_in/out is set) or
 	   * from a function in which it is included
-	   * (executing_group_command is set -- functions are executed
+	   * (executing_function is set -- functions are executed
 	   * as group commands).
 	   */
 	  if (pipe_in == NO_PIPE)
 	    {
-	      if (dgsh_in || executing_group_command)
+	      if (dgsh_in > 0 || executing_function > 0)
 		{
-	          if (executing_group_command)
+	          if (executing_function > 0)
 		    {
 	              char *dgshin = getenv("DGSH_IN");
 	              assert(dgshin);
 	              dgsh_in = atoi(dgshin);
 		    }
-		  if (dgsh_in)
+		  if (dgsh_in > 0)
 		    pipe_in = INHERITED_PIPE;
 		}
 	    }
 	  if (pipe_out == NO_PIPE)
 	    {
-	      if (dgsh_out || executing_group_command)
+	      if (dgsh_out > 0 || executing_function > 0)
 		{
-	          if (executing_group_command)
+	          if (executing_function > 0)
 		    {
 	              char *dgshout = getenv("DGSH_OUT");
 	              assert(dgshout);
 	              dgsh_out = atoi(dgshout);
 		    }
-		  if (dgsh_out)
+		  if (dgsh_out > 0)
 		    pipe_out = INHERITED_PIPE;
 		}
 	    }
@@ -4249,8 +4249,8 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 #if defined (DGSH)
       if (dgsh)
         {
-	  DPRINTF("for simple command pipe_in: %d, pipe_out: %d, dgsh_in: %d, dgsh_out: %d, executing_group_command: %d", pipe_in, pipe_out, dgsh_in,
-			  dgsh_out, executing_group_command);
+	  DPRINTF("for simple command pipe_in: %d, pipe_out: %d, dgsh_in: %d, dgsh_out: %d, executing_function: %d", pipe_in, pipe_out, dgsh_in,
+			  dgsh_out, executing_function);
 
 	  /* Set the command's negotiation environment */
 	  if ((dgsh_nest_level >= 0 &&
@@ -4382,17 +4382,24 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 	      goto dgsh_command_ready;
 	    }
 
+	  /* command is a function;
+	     nothing to do. TODO: consider builtins also */
+	  if (find_function (words->word->word) != 0)
+	    {
+	      DPRINTF("Executing function.");
+	      executing_function++;
+	      goto dgsh_command_ready;
+	    }
+
           command_pathname = search_for_command (words->word->word, 0);
 	  DPRINTF("Path to command: %s", command_pathname);
 
-	  /* command is: in the dgsh path or a function;
-	     nothing to do. TODO: consider builtins also */
-	  if (find_function (words->word->word) != 0 ||
-	       strstr(command_pathname, dgshpath))
+	  /* command is: in the dgsh path;
+	     nothing to do. */
+	  if (strstr(command_pathname, dgshpath))
 	    {
 	      DPRINTF("dgshpath: %s", dgshpath);
-	      DPRINTF("function?: %d", find_function(words->word->word));
-	      DPRINTF("Command %s is in the dgsh path or a function",
+	      DPRINTF("Command %s is in the dgsh path",
 			    command_pathname);
 	      goto dgsh_command_ready;
 	  }
