@@ -4367,13 +4367,20 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
         {
           ELEMENT dgsh_wrap_el;
 	  FILE *f;
-	  char *text = 0, *m, *command_pathname;
+	  char *text = NULL, *m, *line = NULL, *command_pathname;
 	  char dgsh_wrap[10];
 	  size_t buf_size;
 
 	  if (words == 0)
 	    {
 	      DPRINTF("command has no words");
+	      goto dgsh_command_ready;
+	    }
+
+	  /* command is the dgsh; do not wrap */
+	  if (STREQ(words->word->word, "dgsh"))
+	    {
+	      DPRINTF("Command is \"dgsh\"");
 	      goto dgsh_command_ready;
 	    }
 
@@ -4421,24 +4428,35 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 	  /* Open and read 1K characters from command file.
 	     Seek "dgsh-wrap" or "env dgsh" up to the first newline */
 	  f = fopen(command_pathname, "r");
-	  if (!f) {
-	    DPRINTF("dgsh: unable to open file %s", command_pathname);
-	    return (EXECUTION_FAILURE);
-	  }
+	  if (!f)
+	    {
+	      DPRINTF("dgsh: unable to open file %s", command_pathname);
+	      return (EXECUTION_FAILURE);
+	    }
 	  buf_size = 1000;
 	  text = (char *)malloc(sizeof(char) * buf_size + 1);
 	  fread(text, sizeof(char), buf_size, f);
 	  fclose(f);
 	  m = strstr(text, "\n");
-	  if (m == 0) {
-	    text[buf_size] = '\0';
-	    m = text;
-	  }
-	  if (strstr(m, "dgsh-wrap") || strstr(m, "env dgsh")) {
-	    DPRINTF("Command %s invokes dgsh-wrap or env dgsh",
+	  DPRINTF("text: %s", m);
+	  if (m == 0)
+	    {
+	      text[buf_size] = '\0';
+	      line = text;
+	      buf_size = 0;
+	    }
+	  else
+	    {
+	      buf_size = m - text + 1;
+	      line = (char *)malloc(sizeof(char) * buf_size);
+	      strncpy(line, text, buf_size);
+	    }
+	  if (strstr(line, "dgsh-wrap") || strstr(line, "env dgsh"))
+	    {
+	      DPRINTF("Command %s invokes dgsh-wrap or env dgsh",
 			    command_pathname);
-	    goto dgsh_command_ready;
-	  }
+	      goto dgsh_command_ready;
+	    }
 
 	  /* Wrap command for dgsh */
           sprintf(dgsh_wrap, "dgsh-wrap");
@@ -4450,6 +4468,8 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 dgsh_command_ready:
           if (text)
             free(text);
+          if (line && buf_size)
+            free(line);
 
 	}
 #endif
