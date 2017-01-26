@@ -108,6 +108,8 @@ extern int errno;
  * in order not to set the dgsh path
  */
 static int executing_function = 0;
+/* Execute a dgsh command instead of a builtin */
+static int is_dgsh_command = 0;
 
 /* String literal used to inject a wait command
  * for use in an dgsh multipipe block
@@ -4398,7 +4400,13 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 	     nothing to do. */
 	  if (strstr(command_pathname, dgshpath))
 	    {
-	      DPRINTF("dgshpath: %s", dgshpath);
+	      if (find_shell_builtin (words->word->word) ||
+	          find_special_builtin (words->word->word))
+	        {
+		  is_dgsh_command = 1;
+		  DPRINTF("Command %s is a shell or special builtin; override",
+				  words->word->word);
+		}
 	      DPRINTF("Command %s is in the dgsh path",
 			    command_pathname);
 	      goto dgsh_command_ready;
@@ -4479,6 +4487,11 @@ dgsh_command_ready:
       if (posixly_correct)
 	{
 	  builtin = find_special_builtin (words->word->word);
+#if defined (DGSH)
+	  /* Execute a dgsh command instead of a builtin */
+	  if (dgsh && is_dgsh_command)
+	    builtin = 0;
+#endif
 	  if (builtin)
 	    builtin_is_special = 1;
 	}
@@ -4560,8 +4573,16 @@ run_builtin:
      set builtin_is_special.  If this is a function or builtin, and we
      have pipes, then fork a subshell in here.  Otherwise, just execute
      the command directly. */
-  if (func == 0 && builtin == 0)
+#if defined (DGSH)
+  /* Execute a dgsh command instead of a builtin */
+  if (func == 0 && builtin == 0 && !is_dgsh_command)
     builtin = find_shell_builtin (this_command_name);
+  if (dgsh && is_dgsh_command)
+    is_dgsh_command = 0;
+#else
+  if (func == 0 && builtin == 0)
+      builtin = find_shell_builtin (this_command_name);
+#endif
 
   last_shell_builtin = this_shell_builtin;
   this_shell_builtin = builtin;
