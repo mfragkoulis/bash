@@ -4395,6 +4395,12 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 
           command_pathname = search_for_command (words->word->word, 0);
 	  DPRINTF("Path to command: %s", command_pathname);
+	  if (command_pathname == NULL)
+	    {
+	      DPRINTF("Command %s cannot be found. Let bash handle it",
+			      words->word->word);
+	      goto dgsh_command_ready;
+	    }
 
 	  /* command is: in the dgsh path;
 	     nothing to do. */
