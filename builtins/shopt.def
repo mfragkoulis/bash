@@ -83,6 +83,7 @@ extern int extended_quote;
 extern int check_window_size;
 extern int glob_ignore_case, match_ignore_case;
 extern int hup_on_exit;
+extern int xpg_echo;
 extern int gnu_error_format;
 extern int check_jobs_at_exit;
 extern int autocd;
@@ -213,6 +214,7 @@ static struct {
 #endif
   { "shift_verbose", &print_shift_error, (shopt_set_func_t *)NULL },
   { "sourcepath", &source_uses_path, (shopt_set_func_t *)NULL },
+  { "xpg_echo", &xpg_echo, (shopt_set_func_t *)NULL },
   { (char *)0, (int *)0, (shopt_set_func_t *)NULL }
 };
 
