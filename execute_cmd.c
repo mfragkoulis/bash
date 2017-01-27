@@ -4366,8 +4366,8 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
       if (dgsh && dofork)
         {
           ELEMENT dgsh_wrap_el;
-	  FILE *f;
-	  char *text = NULL, *m, *line = NULL, *command_pathname;
+	  int fd, len;
+	  char text[1024], *m, *line = NULL, *command_pathname;
 	  char dgsh_wrap[10];
 	  size_t buf_size;
 
@@ -4426,51 +4426,43 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 	  }
 
 	  /* Open and read 1K characters from command file.
-	     Seek "dgsh-wrap" or "env dgsh" up to the first newline */
-	  f = fopen(command_pathname, "r");
-	  if (!f)
+	     Look for "dgsh-wrap" or "env dgsh" up to the first newline */
+	  fd = open(command_pathname, O_RDONLY);
+	  if (fd < 0)
 	    {
 	      DPRINTF("dgsh: unable to open file %s", command_pathname);
 	      return (EXECUTION_FAILURE);
 	    }
-	  buf_size = 1000;
-	  text = (char *)malloc(sizeof(char) * buf_size + 1);
-	  fread(text, sizeof(char), buf_size, f);
-	  fclose(f);
-	  m = strstr(text, "\n");
+	  len = read (fd, text, sizeof(text) - 1);
+	  close (fd);
+
+	  /* Terminate string at newline, end of file, or end of buffer */
+	  text[len] = text[sizeof(text) - 1] = '\0';
+	  m = strchr(text, '\n');
 	  DPRINTF("text: %s", m);
-	  if (m == 0)
+
+	  if (memcmp(text, "#!", 2) == 0 && (
+		strstr(text, "dgsh-wrap ") ||
+		strstr(text, " --dgsh") ||
+		strstr(text, "env dgsh")))
 	    {
-	      text[buf_size] = '\0';
-	      line = text;
-	      buf_size = 0;
-	    }
-	  else
-	    {
-	      buf_size = m - text + 1;
-	      line = (char *)malloc(sizeof(char) * buf_size);
-	      strncpy(line, text, buf_size);
-	    }
-	  if (strstr(line, "dgsh-wrap") || strstr(line, "env dgsh"))
-	    {
-	      DPRINTF("Command %s invokes dgsh-wrap or env dgsh",
+	      DPRINTF("Script %s invokes dgsh-wrap, --dgsh, or env dgsh",
 			    command_pathname);
 	      goto dgsh_command_ready;
+
 	    }
 
 	  /* Wrap command for dgsh */
-          sprintf(dgsh_wrap, "dgsh-wrap");
-          dgsh_wrap_el.word = alloc_word_desc();
-          dgsh_wrap_el.word->word = dgsh_wrap;
+	  DPRINTF("Command %s requires wrapping",
+			command_pathname);
+	  sprintf(dgsh_wrap, "dgsh-wrap");
+	  dgsh_wrap_el.word = alloc_word_desc();
+	  dgsh_wrap_el.word->word = dgsh_wrap;
 	  dgsh_wrap_el.redirect = 0;
-          words = make_word_list (dgsh_wrap_el.word, words);
+	  words = make_word_list (dgsh_wrap_el.word, words);
 
 dgsh_command_ready:
-          if (text)
-            free(text);
-          if (line && buf_size)
-            free(line);
-
+	  ;
 	}
 #endif
 
