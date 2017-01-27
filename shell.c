@@ -232,6 +232,7 @@ int posixly_correct = 0;	/* Non-zero means posix.2 superset. */
 #endif
 
 #if defined (DGSH)
+char DGSH_SHELL_NAME[] = "dgsh";
 int dgsh = 0;
 int dgsh_in = 0;
 int dgsh_out = 0;
@@ -343,6 +344,10 @@ static void shell_initialize __P((void));
 static void shell_reinitialize __P((void));
 
 static void show_shell_usage __P((FILE *, int));
+
+#if defined (DGSH)
+static int shell_is_dgsh __P((char *));
+#endif
 
 #ifdef __CYGWIN__
 static void
@@ -684,6 +689,8 @@ main (argc, argv, env)
     }
 
 #if defined (DGSH)
+  dgsh = dgsh || shell_is_dgsh(shell_name);
+  DPRINTF("Check if shell is dgsh. dgsh: %d", dgsh);
   if (dgsh)
     {
       char *dgshin = getenv("DGSH_IN");
@@ -1199,6 +1206,20 @@ run_startup_files ()
   set_job_control (old_job_control);
 #endif
 }
+
+#if defined (DGSH)
+/* Return 1 if the shell is named as DGSH_SHELL_NAME.
+   Don't actually do anything, just return a
+   boolean value. */
+int
+shell_is_dgsh (name)
+     char *name;
+{
+  char *temp;
+  temp = base_pathname (name);
+  return (STREQ (temp, DGSH_SHELL_NAME));
+}
+#endif
 
 #if defined (RESTRICTED_SHELL)
 /* Return 1 if the shell should be a restricted one based on NAME or the
