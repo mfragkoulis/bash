@@ -110,6 +110,10 @@ extern int errno;
 static int executing_function = 0;
 /* Execute a dgsh command instead of a builtin */
 static int is_dgsh_command = 0;
+/* Hold whether a check for a command's compatibility
+ * in terms of the connectors it uses
+ * with the dgsh shell (dgsh==1) has been carried out */
+static int dgsh_graph_checked = 0;
 
 /* String literal used to inject a wait command
  * for use in an dgsh multipipe block
@@ -142,6 +146,7 @@ static struct dgsh_conc **dgsh_proc_fds = NULL;
  */
 static int dgsh_nest_level = -1;
 
+static void is_dgsh __P((COMMAND *, int *));
 static void dgsh_check_wrap __P((COMMAND **));
 static void set_dgsh_path __P((void));
 static void change_dgsh_pipes __P((int *, int *, COMMAND *));
@@ -1159,6 +1164,20 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 
     case cm_connection:
       DPRINTF("cm_connection case\n");
+#if defined (DGSH)
+      if (dgsh && !dgsh_graph_checked)
+        {
+	  int compatible = 1;
+	  is_dgsh(command, &compatible);
+	  if (!compatible)
+	    {
+	      dgsh = 0;
+	      DPRINTF("A non-dgsh connector is used in this command.");
+	      DPRINTF("Set dgsh=0 in order to fall back to bash.");
+	    }
+	  dgsh_graph_checked = 1;
+	}
+#endif
       exec_result = execute_connection (command, asynchronous,
 					pipe_in, pipe_out, fds_to_close);
       break;
@@ -2592,8 +2611,10 @@ execute_pipeline (command, asynchronous, pipe_in, pipe_out, fds_to_close)
 
       if (ignore_return && cmd->value.Connection->first)
 	cmd->value.Connection->first->flags |= CMD_IGNORE_RETURN;
+#if defined (DGSH)
       if (dgsh)
         dgsh_check_wrap(&cmd->value.Connection->first);
+#endif
       execute_command_internal (cmd->value.Connection->first, asynchronous,
 				prev, fildes[1], fd_bitmap);
 
@@ -5883,6 +5904,33 @@ close_all_files ()
 #endif
 
 #if defined (DGSH)
+
+/* Check whether the command given is dgsh compatible
+ * in terms of the connectors it uses.
+ * Assign compatible=1 if it is dgsh compatible (|, &)
+ * or 0 if it is not (&&, ||, ;).
+ */
+static void
+is_dgsh (command, compatible)
+     COMMAND *command; int *compatible;
+{
+  if (!command)
+    return;
+  DPRINTF("command type: %d, command: %s, compatible: %d\n",
+		  command->type, make_command_string(command), *compatible);
+  if (command->type == cm_connection)
+    {
+      if (command->value.Connection->connector == '|' ||
+          command->value.Connection->connector == '&')
+	{
+          is_dgsh(command->value.Connection->first, compatible);
+          is_dgsh(command->value.Connection->second, compatible);
+	}
+      else
+	*compatible = 0;
+    }
+  return;
+}
 
 /*
  * Check if a command requires wrapping with dgsh -c ''
