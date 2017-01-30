@@ -142,7 +142,7 @@ static struct dgsh_conc **dgsh_proc_fds = NULL;
  */
 static int dgsh_nest_level = -1;
 
-static COMMAND *dgsh_check_wrap __P((COMMAND *));
+static void dgsh_check_wrap __P((COMMAND **));
 static void set_dgsh_path __P((void));
 static void change_dgsh_pipes __P((int *, int *, COMMAND *));
 static int get_dgsh_block_comm_n __P((COMMAND *, int*));
@@ -2592,8 +2592,8 @@ execute_pipeline (command, asynchronous, pipe_in, pipe_out, fds_to_close)
 
       if (ignore_return && cmd->value.Connection->first)
 	cmd->value.Connection->first->flags |= CMD_IGNORE_RETURN;
-      cmd->value.Connection->first = dgsh_check_wrap(
-		      cmd->value.Connection->first);
+      if (dgsh)
+        dgsh_check_wrap(&cmd->value.Connection->first);
       execute_command_internal (cmd->value.Connection->first, asynchronous,
 				prev, fildes[1], fd_bitmap);
 
@@ -5889,9 +5889,9 @@ close_all_files ()
  * and wrap it if so.
  * The function is used in the context of execute_pipeline()
  */
-static COMMAND *
+static void
 dgsh_check_wrap(command)
-	COMMAND *command;
+	COMMAND **command;
 {
 	ELEMENT dgsh_el[3];
 	char quote[2] = "'";
@@ -5905,13 +5905,13 @@ dgsh_check_wrap(command)
 	COMMAND *new_command;
 
 	/* No wrapping required */
-	if (command->type == cm_connection ||
-	    command->type == cm_simple ||
-	    command->type == cm_dgsh ||
-	    command->type == cm_function_def)
-		return command;
+	if ((*command)->type == cm_connection ||
+	    (*command)->type == cm_simple ||
+	    (*command)->type == cm_dgsh ||
+	    (*command)->type == cm_function_def)
+		return;
 
-	c = make_command_string(command);
+	c = make_command_string(*command);
 	DPRINTF("Before wrapping command is: %s", c);
 
 	/* TODO: single or double quotes required? Tough to say. Revisit. */
@@ -5938,7 +5938,7 @@ dgsh_check_wrap(command)
 	DPRINTF("After wrapping new command is: %s",
 			make_command_string(new_command));
 
-	return new_command;
+	*command = new_command;
 }
 
 /**
