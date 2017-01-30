@@ -5941,13 +5941,15 @@ static void
 dgsh_check_wrap(command)
 	COMMAND **command;
 {
-	ELEMENT dgsh_el[3];
+	ELEMENT dgsh_el[4];
 	char quote[2] = "'";
 	// TODO: Free
 	char *c_arg = malloc(sizeof(char) * 3);
 	sprintf(c_arg, "-c");
-	char *dgsh_com = malloc(sizeof(char) * 5);
-	sprintf(dgsh_com, "dgsh");
+	char *dgshwrap_com = malloc(sizeof(char) * 10);
+	sprintf(dgshwrap_com, "dgsh-wrap");
+	char *bash_com = malloc(sizeof(char) * 5);
+	sprintf(bash_com, "bash");
 	char *c, *command_string;
 	WORD_LIST *words;
 	COMMAND *new_command;
@@ -5968,19 +5970,23 @@ dgsh_check_wrap(command)
 
 	command_string = malloc(sizeof(char) * (strlen(c) + 3));
 	sprintf(command_string, "%s%s%s", quote, c, quote);
-	dgsh_el[2].word = alloc_word_desc();
-	dgsh_el[2].word->word = command_string;
-	dgsh_el[2].redirect = 0;
+	dgsh_el[3].word = alloc_word_desc();
+	dgsh_el[3].word->word = command_string;
+	dgsh_el[3].redirect = 0;
 
+	dgsh_el[2].word = alloc_word_desc();
+	dgsh_el[2].word->word = c_arg;
+	dgsh_el[2].redirect = 0;
 	dgsh_el[1].word = alloc_word_desc();
-	dgsh_el[1].word->word = c_arg;
+	dgsh_el[1].word->word = bash_com;
 	dgsh_el[1].redirect = 0;
 	dgsh_el[0].word = alloc_word_desc();
-	dgsh_el[0].word->word = dgsh_com;
+	dgsh_el[0].word->word = dgshwrap_com;
 	dgsh_el[0].redirect = 0;
 
 	/* Make new_command: dgsh -c 'command' */
-	new_command = make_simple_command(dgsh_el[2], (COMMAND *)NULL);
+	new_command = make_simple_command(dgsh_el[3], (COMMAND *)NULL);
+	new_command = make_simple_command(dgsh_el[2], new_command);
 	new_command = make_simple_command(dgsh_el[1], new_command);
 	new_command = make_simple_command(dgsh_el[0], new_command);
 	DPRINTF("After wrapping new command is: %s",
