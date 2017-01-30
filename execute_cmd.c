@@ -142,6 +142,7 @@ static struct dgsh_conc **dgsh_proc_fds = NULL;
  */
 static int dgsh_nest_level = -1;
 
+static COMMAND *dgsh_check_wrap __P((COMMAND *));
 static void set_dgsh_path __P((void));
 static void change_dgsh_pipes __P((int *, int *, COMMAND *));
 static int get_dgsh_block_comm_n __P((COMMAND *, int*));
@@ -2591,7 +2592,8 @@ execute_pipeline (command, asynchronous, pipe_in, pipe_out, fds_to_close)
 
       if (ignore_return && cmd->value.Connection->first)
 	cmd->value.Connection->first->flags |= CMD_IGNORE_RETURN;
-      DPRINTF("go execute_command_internal\n");
+      cmd->value.Connection->first = dgsh_check_wrap(
+		      cmd->value.Connection->first);
       execute_command_internal (cmd->value.Connection->first, asynchronous,
 				prev, fildes[1], fd_bitmap);
 
@@ -5881,6 +5883,63 @@ close_all_files ()
 #endif
 
 #if defined (DGSH)
+
+/*
+ * Check if a command requires wrapping with dgsh -c ''
+ * and wrap it if so.
+ * The function is used in the context of execute_pipeline()
+ */
+static COMMAND *
+dgsh_check_wrap(command)
+	COMMAND *command;
+{
+	ELEMENT dgsh_el[3];
+	char quote[2] = "'";
+	// TODO: Free
+	char *c_arg = malloc(sizeof(char) * 3);
+	sprintf(c_arg, "-c");
+	char *dgsh_com = malloc(sizeof(char) * 5);
+	sprintf(dgsh_com, "dgsh");
+	char *c, *command_string;
+	WORD_LIST *words;
+	COMMAND *new_command;
+
+	/* No wrapping required */
+	if (command->type == cm_connection ||
+	    command->type == cm_simple ||
+	    command->type == cm_dgsh ||
+	    command->type == cm_function_def)
+		return command;
+
+	c = make_command_string(command);
+	DPRINTF("Before wrapping command is: %s", c);
+
+	/* TODO: single or double quotes required? Tough to say. Revisit. */
+	if (strchr(c, '$') || strchr(c, '\''))
+		sprintf(quote, "\"");
+
+	command_string = malloc(sizeof(char) * (strlen(c) + 3));
+	sprintf(command_string, "%s%s%s", quote, c, quote);
+	dgsh_el[2].word = alloc_word_desc();
+	dgsh_el[2].word->word = command_string;
+	dgsh_el[2].redirect = 0;
+
+	dgsh_el[1].word = alloc_word_desc();
+	dgsh_el[1].word->word = c_arg;
+	dgsh_el[1].redirect = 0;
+	dgsh_el[0].word = alloc_word_desc();
+	dgsh_el[0].word->word = dgsh_com;
+	dgsh_el[0].redirect = 0;
+
+	/* Make new_command: dgsh -c 'command' */
+	new_command = make_simple_command(dgsh_el[2], (COMMAND *)NULL);
+	new_command = make_simple_command(dgsh_el[1], new_command);
+	new_command = make_simple_command(dgsh_el[0], new_command);
+	DPRINTF("After wrapping new command is: %s",
+			make_command_string(new_command));
+
+	return new_command;
+}
 
 /**
  * Prepend dgsh installation path to standard path
