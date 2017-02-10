@@ -241,6 +241,7 @@ int dgsh_out = 0;
  * This path is prepended to the environment's PATH
  */
 char *dgshpath = DGSHPATH;
+char *dgshbuildpath = DGSHBUILDPATH;
 #endif
 
 /* Some long-winded argument names.  These are obviously new. */
@@ -516,7 +517,7 @@ main (argc, argv, env)
     disable_priv_mode ();
 
 #if defined (DGSH)
-  DPRINTF("bash: pgrp: %d", getpgrp());
+  DPRINTF("bash: pgrp: %d, dgshpath: %s", getpgrp(), dgshpath);
 #endif
 
   /* Need to get the argument to a -c option processed in the

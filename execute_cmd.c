@@ -120,6 +120,7 @@ extern int dgsh;
 extern int dgsh_in;
 extern int dgsh_out;
 extern char *dgshpath;
+extern char *dgshbuildpath;
 
 
 /* data structure for the dgsh concentrator */
@@ -4411,7 +4412,8 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 
 	  /* command is: in the dgsh path;
 	     nothing to do. */
-	  if (strstr(command_pathname, dgshpath))
+	  if (strstr(command_pathname, dgshpath) ||
+	      strstr(command_pathname, "/build/libexec/dgsh"))
 	    {
 	      if (find_shell_builtin (words->word->word) ||
 	          find_special_builtin (words->word->word))
@@ -6040,6 +6042,7 @@ create_conc_command(fds, type, prog, output, noinput)
 {
   ELEMENT conc_el[4];
   COMMAND *conc = NULL;
+  char *path;
 
   conc_el[3].word = alloc_word_desc();
   conc_el[3].word->word = fds;
@@ -6065,7 +6068,11 @@ create_conc_command(fds, type, prog, output, noinput)
   conc_el[1].redirect = 0;
   conc = make_simple_command(conc_el[1], conc);
 
-  sprintf(prog, "%s/dgsh-conc", dgshpath);
+  path = getenv("PATH");
+  if (strstr(path, "/build/libexec/dgsh"))
+    sprintf(prog, "%s/dgsh-conc", dgshbuildpath);
+  else
+    sprintf(prog, "%s/dgsh-conc", dgshpath);
   conc_el[0].word = alloc_word_desc();
   conc_el[0].word->word = prog;
   conc_el[0].redirect = 0;
