@@ -238,9 +238,13 @@ int dgsh_in = 0;
 int dgsh_out = 0;
 /* Path where the dgsh-specific commands are installed.
  * These require negotiation, so they can only be run from within dgsh.
- * This path is prepended to the environment's PATH
+ * This path is prepended to the environment's PATH when commands
+ * execute in a dgsh context.
+ * The path is normally hardcoded to the macro DGSHPATH, but it can also be
+ * set (typically when running tests) from the environment variable
+ * DGSHPATH.
  */
-char *dgshpath = DGSHPATH;
+char *dgshpath;
 #endif
 
 /* Some long-winded argument names.  These are obviously new. */
@@ -516,6 +520,9 @@ main (argc, argv, env)
     disable_priv_mode ();
 
 #if defined (DGSH)
+  dgshpath = getenv("DGSHPATH");
+  if (dgshpath == NULL)
+    dgshpath = DGSHPATH;
   DPRINTF("bash: pgrp: %d, dgshpath: %s", getpgrp(), dgshpath);
 #endif
 
