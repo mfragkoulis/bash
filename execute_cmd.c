@@ -120,7 +120,6 @@ extern int dgsh;
 extern int dgsh_in;
 extern int dgsh_out;
 extern char *dgshpath;
-extern char *dgshbuildpath;
 
 
 /* data structure for the dgsh concentrator */
@@ -6068,11 +6067,6 @@ create_conc_command(fds, type, prog, output, noinput)
   conc_el[1].redirect = 0;
   conc = make_simple_command(conc_el[1], conc);
 
-  path = getenv("PATH");
-  if (strstr(path, "/build/libexec/dgsh"))
-    sprintf(prog, "%s/dgsh-conc", dgshbuildpath);
-  else
-    sprintf(prog, "%s/dgsh-conc", dgshpath);
   conc_el[0].word = alloc_word_desc();
   conc_el[0].word->word = prog;
   conc_el[0].redirect = 0;
@@ -6095,9 +6089,9 @@ create_dgsh_conc (command, pipe_in, pipe_out, fds_to_close)
   if (command->type == cm_dgsh)
     {
       char fds[3];
-      char prog[100];
       char type[3];
       char noinput[3];
+      char prog[] = "dgsh-conc";
       int n = 0, i = 0;
       int output = -1;
       COMMAND *conc_out, *conc_in, *wait;

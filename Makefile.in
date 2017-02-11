@@ -132,7 +132,7 @@ CPPFLAGS_FOR_BUILD = @CPPFLAGS_FOR_BUILD@
 LOCAL_CFLAGS = @LOCAL_CFLAGS@ ${DEBUG} ${MALLOC_DEBUG}
 DEFS = @DEFS@
 # dgsh macro definition
-LOCAL_DEFS = @LOCAL_DEFS@ -DDGSH -DDGSHBUILDPATH='"$(shell pwd)/../../build/libexec/dgsh"' -DDGSHPATH='"$(libexecdir)/dgsh"'
+LOCAL_DEFS = @LOCAL_DEFS@ -DDGSH -DDGSHPATH='"$(libexecdir)/dgsh"'
 
 LOCALE_DEFS = -DLOCALEDIR='"$(localedir)"' -DPACKAGE='"$(PACKAGE)"'
 

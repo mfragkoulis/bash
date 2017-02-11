@@ -241,7 +241,6 @@ int dgsh_out = 0;
  * This path is prepended to the environment's PATH
  */
 char *dgshpath = DGSHPATH;
-char *dgshbuildpath = DGSHBUILDPATH;
 #endif
 
 /* Some long-winded argument names.  These are obviously new. */
