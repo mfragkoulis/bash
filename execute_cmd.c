@@ -120,6 +120,7 @@ extern int dgsh;
 extern int dgsh_in;
 extern int dgsh_out;
 extern char *dgshpath;
+char *stdpath = NULL;
 
 
 /* data structure for the dgsh concentrator */
@@ -938,9 +939,12 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
     {
        DPRINTF("Unset dgshpath from path");
        DPRINTF("dgshpath in path: %s", ppath);
-       ppath += strlen(dgshpath) + 1; //<dgshpath>:
-       DPRINTF("dgshpath not in path: %s", ppath);
-       bind_variable("PATH", ppath, 0);
+       if (stdpath != NULL)
+         {
+           DPRINTF("dgshpath not in path: %s", stdpath);
+           bind_variable("PATH", stdpath, 0);
+           free(stdpath);
+	 }
     }
 #endif
 
@@ -5896,6 +5900,7 @@ set_dgsh_path()
     {
       int newlen = strlen(path->value) + strlen(dgshpath) + 1;
       char newpath[newlen];
+      stdpath = strdup(path->value);
       sprintf(newpath, "%s:%s", dgshpath, path->value);
       bind_variable("PATH", newpath, 0);
       DPRINTF("%s(): after prepending, path: %s",
