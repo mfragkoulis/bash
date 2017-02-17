@@ -54,8 +54,6 @@
 #include "common.h"
 #include "builtext.h"
 
-#include "dgsh-debug.h"		/* DPRINTF */
-
 #if !defined (errno)
 extern int errno;
 #endif
@@ -387,7 +385,6 @@ parse_and_execute (string, from_file, flags)
 		}
 	      else
 	        {
-		  DPRINTF("go execute command internal\n");
 		  last_result = execute_command_internal
 				(command, 0, NO_PIPE, NO_PIPE, bitmap);
 		}
@@ -456,8 +453,6 @@ parse_string (string, from_file, flags, endp)
   COMMAND *volatile command, *oglobal;
   char *ostring;
   volatile sigset_t ps_sigmask;
-
-  DPRINTF("%s\n", string);
 
   parse_prologue (string, flags, PS_TAG);
 

@@ -1017,7 +1017,7 @@ group_command:	'{' compound_list '}'
 
 dgsh_command:	DGSH_START dgsh_block_list DGSH_END
 			{
-			  DPRINTF("dgsh command\n");
+			  DPRINTF(3, "dgsh command\n");
 			  $$ = make_dgsh_command ($2);
 			  
 			}
@@ -2075,7 +2075,7 @@ read_a_line (remove_quoted_newline)
       else
 	line_buffer[indx++] = c;
 
-      DPRINTF("line_buffer: %s\n", line_buffer);
+      DPRINTF(3, "line_buffer: %s\n", line_buffer);
 
       if (c == '\n')
 	{

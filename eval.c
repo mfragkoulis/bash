@@ -237,7 +237,7 @@ parse_command ()
     }
 
   current_command_line_count = 0;
-  DPRINTF("go yyparse()\n");
+  DPRINTF(3, "go yyparse()\n");
   r = yyparse ();
 
   if (need_here_doc)
