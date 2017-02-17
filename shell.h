@@ -179,13 +179,6 @@ typedef struct _sh_input_line_state_t {
   size_t input_line_len;
 } sh_input_line_state_t;
 
-#if defined (DGSH) && defined (DEBUG)
-/* ## is a gcc extension that removes trailing comma if no args */
-#define DPRINTF(fmt, ...) fprintf(stderr, "%d: %s(): " fmt "\n", (int)getpid(), __func__, ##__VA_ARGS__)
-#else
-#define DPRINTF(fmt, ...)
-#endif
-
 /* Let's try declaring these here. */
 extern char *parser_remaining_input __P((void));
 

@@ -2973,7 +2973,7 @@ yyreduce:
   case 112:
 #line 1017 "./parse.y" /* yacc.c:1646  */
     {
-			  DPRINTF("dgsh command\n");
+			  //DPRINTF("dgsh command\n");
 			  (yyval.command) = make_dgsh_command ((yyvsp[-1].command));
 			  
 			}
@@ -4418,7 +4418,7 @@ read_a_line (remove_quoted_newline)
       else
 	line_buffer[indx++] = c;
 
-      DPRINTF("line_buffer: %s\n", line_buffer);
+      //DPRINTF("line_buffer: %s\n", line_buffer);	/* dgsh */
 
       if (c == '\n')
 	{

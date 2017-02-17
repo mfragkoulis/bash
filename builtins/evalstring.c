@@ -54,6 +54,8 @@
 #include "common.h"
 #include "builtext.h"
 
+#include "dgsh-debug.h"		/* DPRINTF */
+
 #if !defined (errno)
 extern int errno;
 #endif

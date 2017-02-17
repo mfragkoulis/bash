@@ -89,6 +89,8 @@ typedef void *alias_t;
 #  include "maxpath.h"
 #endif /* PROMPT_STRING_DECODE */
 
+#include "dgsh-debug.h"		/* DPRINTF */
+
 #define RE_READ_TOKEN	-99
 #define NO_EXPANSION	-100
 

@@ -98,6 +98,7 @@ extern int errno;
 #  include "bashhist.h"
 #endif
 
+#include "dgsh-debug.h"		/* dgsh: DPRINTF(3, ) */
 #if defined (DGSH)
 #include <sys/socket.h>		/* socketpair(), AF_UNIX, SOCK_DGRAM */
 #include <assert.h>		/* assert() */
@@ -386,7 +387,7 @@ close_fd_bitmap (fdbp)
       for (i = 0; i < fdbp->size; i++)
 	if (fdbp->bitmap[i])
 	  {
-	    DPRINTF("close fd %d\n", i);
+	    DPRINTF(3, "close fd %d\n", i);
 	    close (i);
 	    fdbp->bitmap[i] = 0;
 	  }
@@ -600,7 +601,7 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
   volatile char *ofifo_list;
 #endif
 
-  DPRINTF("pipe_in: %d, pipe_out: %d, asynchronous: %d\n",
+  DPRINTF(3, "pipe_in: %d, pipe_out: %d, asynchronous: %d\n",
 		  pipe_in, pipe_out, asynchronous);
 
   if (breaking || continuing)
@@ -645,14 +646,14 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
       /* Handle pipes inherited from the environment */
       if (dgsh_in == 1)
         {
-	  DPRINTF("Inherit pipe_in");
+	  DPRINTF(3, "Inherit pipe_in");
           assert(pipe_in == NO_PIPE);
           pipe_in = INHERITED_PIPE;
           dgsh_in = 0;
         }
       if (dgsh_out == 1)
         {
-	  DPRINTF("Inherit pipe_out");
+	  DPRINTF(3, "Inherit pipe_out");
           assert(pipe_out == NO_PIPE);
           pipe_out = INHERITED_PIPE;
           dgsh_out = 0;
@@ -673,17 +674,17 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
       line_number_for_err_trap = line_number;
       tcmd = make_command_string (command);
 #if defined (DGSH)
-      DPRINTF("dgsh_nest_level: %d, should be compound command: %s",
+      DPRINTF(3, "dgsh_nest_level: %d, should be compound command: %s",
 		  dgsh_nest_level, make_command_string(command));
       // XXX: decide black list of command types to not change pipes
       if (dgsh_nest_level >= 0 && command->type != cm_connection &&
           command->type != cm_group)
         change_dgsh_pipes(&pipe_in, &pipe_out, command);
 #endif
-      DPRINTF("go make_child()\n");
+      DPRINTF(3, "go make_child()\n");
       paren_pid = make_child (savestring (tcmd), asynchronous);
 
-      DPRINTF("make child paren pid: %d\n", paren_pid);
+      DPRINTF(3, "make child paren pid: %d\n", paren_pid);
 
       if (user_subshell && signal_is_trapped (ERROR_TRAP) && 
 	  signal_in_progress (DEBUG_TRAP) == 0 && running_trap == 0)
@@ -712,10 +713,10 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 	  s += user_subshell == 0 && command->type == cm_group && (pipe_in != NO_PIPE || pipe_out != NO_PIPE) && asynchronous == 0;
 #endif
 
-	  DPRINTF("go execute_in_subshell()\n");
+	  DPRINTF(3, "go execute_in_subshell()\n");
 	  last_command_exit_value = execute_in_subshell (command, asynchronous, pipe_in, pipe_out, fds_to_close);
 
-	  DPRINTF("last_command_exit_value: %d, s: %d\n",
+	  DPRINTF(3, "last_command_exit_value: %d, s: %d\n",
 			  last_command_exit_value, s);
 	  if (s)
 	    subshell_exit (last_command_exit_value);
@@ -747,12 +748,12 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 	      invert = (command->flags & CMD_INVERT_RETURN) != 0;
 	      ignore_return = (command->flags & CMD_IGNORE_RETURN) != 0;
 
-	      DPRINTF("wait for paren_pid\n");
+	      DPRINTF(3, "wait for paren_pid\n");
 	      exec_result = wait_for (paren_pid);
-	      DPRINTF("exec_result: %d\n", exec_result);
+	      DPRINTF(3, "exec_result: %d\n", exec_result);
 
 #if defined (DGSH)
-              DPRINTF("Try free dgsh conc at level: %d", dgsh_nest_level);
+              DPRINTF(3, "Try free dgsh conc at level: %d", dgsh_nest_level);
               if (dgsh_nest_level >= 0 &&
 		  !strncmp(make_command_string(command), "../dgsh_conc", 12))
 		//XXX: never executed: investigate
@@ -761,7 +762,7 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 			  dgsh_conc_fds[dgsh_nest_level];
                   struct dgsh_conc *current_dgsh_proc =
 			  dgsh_proc_fds[dgsh_nest_level];
-		  DPRINTF("End conc command %s at nest level %d\n",
+		  DPRINTF(3, "End conc command %s at nest level %d\n",
 			make_command_string(command),
 			dgsh_nest_level);
 		  if (!strncmp(make_command_string(command),
@@ -912,7 +913,7 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
   QUIT;
 
 #if defined (DGSH)
-  DPRINTF("dgsh_nest_level: %d, command: %s, command type: %d",
+  DPRINTF(3, "dgsh_nest_level: %d, command: %s, command type: %d",
 		  dgsh_nest_level, make_command_string(command), command->type);
   // XXX: decide black list of command types to not change pipes
   if (dgsh_nest_level >= 0 && command->type != cm_connection &&
@@ -937,25 +938,25 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
     ppath = strstr(path->value, dgshpath);
   if (ppath)
     {
-       DPRINTF("Unset dgshpath from path");
-       DPRINTF("dgshpath in path: %s", ppath);
+       DPRINTF(3, "Unset dgshpath from path");
+       DPRINTF(3, "dgshpath in path: %s", ppath);
        if (stdpath != NULL)
          {
-           DPRINTF("dgshpath not in path: %s", stdpath);
+           DPRINTF(3, "dgshpath not in path: %s", stdpath);
            bind_variable("PATH", stdpath, 0);
            free(stdpath);
 	 }
     }
 #endif
 
-  DPRINTF("command type: %d, command: %s\n", command->type,
+  DPRINTF(3, "command type: %d, command: %s\n", command->type,
 		  make_command_string(command));
 
   switch (command->type)
     {
     case cm_simple:
       {
-	DPRINTF("cm_simple case\n");
+	DPRINTF(3, "cm_simple case\n");
 	save_line_number = line_number;
 	/* We can't rely on variables retaining their values across a
 	   call to execute_simple_command if a longjmp occurs as the
@@ -1017,7 +1018,7 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 	      exec_result = wait_for (last_made_pid);
 	  }
       }
-      DPRINTF("Completed waiting for pid: %d", last_made_pid);
+      DPRINTF(3, "Completed waiting for pid: %d", last_made_pid);
 
       /* 2009/02/13 -- pipeline failure is processed elsewhere.  This handles
 	 only the failure of a simple command. */
@@ -1087,7 +1088,7 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
       break;
 
     case cm_group:
-      DPRINTF("cm_group case: executing_function: %d, pipe_in: %d, pipe_out: %d\n",
+      DPRINTF(3, "cm_group case: executing_function: %d, pipe_in: %d, pipe_out: %d\n",
 		      executing_function, pipe_in, pipe_out);
 
       /* This code can be executed from either of two paths: an explicit
@@ -1137,7 +1138,7 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 #if defined (DGSH)
     /* Heavily similar to a group command's execution */
     case cm_dgsh:
-      DPRINTF("cm_dgsh case: pipe_in: %d, pipe_out: %d, dgsh_in: %d, dgsh_out: %d",
+      DPRINTF(3, "cm_dgsh case: pipe_in: %d, pipe_out: %d, dgsh_in: %d, dgsh_out: %d",
 		      pipe_in, pipe_out, dgsh_in, dgsh_out);
 
       if (asynchronous)
@@ -1156,12 +1157,12 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 				      asynchronous, pipe_in, pipe_out,
 				      fds_to_close);
 	}
-        DPRINTF("dgsh command returns %d", exec_result);
+        DPRINTF(3, "dgsh command returns %d", exec_result);
       break;
 #endif
 
     case cm_connection:
-      DPRINTF("cm_connection case\n");
+      DPRINTF(3, "cm_connection case\n");
       exec_result = execute_connection (command, asynchronous,
 					pipe_in, pipe_out, fds_to_close);
       break;
@@ -1232,7 +1233,7 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
       command_error ("execute_command", CMDERR_BADTYPE, command->type, 0);
     }
 
-  DPRINTF("exit switch for command: %d", command->type);
+  DPRINTF(3, "exit switch for command: %d", command->type);
 
   if (my_undo_list)
     {
@@ -1262,7 +1263,7 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 		    ? EXECUTION_FAILURE
 		    : EXECUTION_SUCCESS;
 
-  DPRINTF("exec_result: %d", exec_result);
+  DPRINTF(3, "exec_result: %d", exec_result);
 
 #if defined (DPAREN_ARITHMETIC) || defined (COND_COMMAND)
   /* This is where we set PIPESTATUS from the exit status of the appropriate
@@ -1283,7 +1284,7 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 #endif
 
   last_command_exit_value = exec_result;
-  DPRINTF("last command exit value: %d", last_command_exit_value);
+  DPRINTF(3, "last command exit value: %d", last_command_exit_value);
   run_pending_traps ();
 #if 0
   if (running_trap == 0)
@@ -1619,12 +1620,12 @@ execute_in_subshell (command, asynchronous, pipe_in, pipe_out, fds_to_close)
   should_redir_stdin = (asynchronous && (command->flags & CMD_STDIN_REDIR) &&
 			  pipe_in == NO_PIPE &&
 			  stdin_redirects (command->redirects) == 0);
-  DPRINTF("pipe_in: %d, pipe_out: %d, should_redir_stdin: %d\n",
+  DPRINTF(3, "pipe_in: %d, pipe_out: %d, should_redir_stdin: %d\n",
 		  pipe_in, pipe_out, should_redir_stdin);
 
   invert = (command->flags & CMD_INVERT_RETURN) != 0;
   user_subshell = command->type == cm_subshell || ((command->flags & CMD_WANT_SUBSHELL) != 0);
-  DPRINTF("user_subshell: %d, asynchronous: %d\n", user_subshell, asynchronous);
+  DPRINTF(3, "user_subshell: %d, asynchronous: %d\n", user_subshell, asynchronous);
   user_coproc = command->type == cm_coproc;
 
   command->flags &= ~(CMD_FORCE_SUBSHELL | CMD_WANT_SUBSHELL | CMD_INVERT_RETURN);
@@ -1680,7 +1681,7 @@ execute_in_subshell (command, asynchronous, pipe_in, pipe_out, fds_to_close)
 	subshell_environment |= SUBSHELL_PIPE;
       if (user_coproc)
 	subshell_environment |= SUBSHELL_COPROC;
-      DPRINTF("subshell_environment & SUBSHELL_PIPE = %d\n",
+      DPRINTF(3, "subshell_environment & SUBSHELL_PIPE = %d\n",
 		      subshell_environment & SUBSHELL_PIPE);
     }
 
@@ -1728,7 +1729,7 @@ execute_in_subshell (command, asynchronous, pipe_in, pipe_out, fds_to_close)
   create_dgsh_conc(command, &pipe_in, &pipe_out, fds_to_close);
 #endif
 
-  DPRINTF("go do piping\n");
+  DPRINTF(3, "go do piping\n");
   do_piping (pipe_in, pipe_out);
 
 #if defined (COPROCESS_SUPPORT)
@@ -2511,7 +2512,7 @@ execute_pipeline (command, asynchronous, pipe_in, pipe_out, fds_to_close)
   pid_t lastpid;
   int re;
 
-  DPRINTF("pipe_in: %d, pipe_out: %d\n", pipe_in, pipe_out);
+  DPRINTF(3, "pipe_in: %d, pipe_out: %d\n", pipe_in, pipe_out);
 
 #if defined (JOB_CONTROL)
   sigset_t set, oset;
@@ -2531,7 +2532,7 @@ execute_pipeline (command, asynchronous, pipe_in, pipe_out, fds_to_close)
       if (dgsh)
 	{
         re = socketpair (AF_UNIX, SOCK_DGRAM, 0, fildes);
-	DPRINTF("Created socketpair %d -- %d\n", fildes[0], fildes[1]);
+	DPRINTF(3, "Created socketpair %d -- %d\n", fildes[0], fildes[1]);
 	}
       else
 #endif
@@ -2595,7 +2596,7 @@ execute_pipeline (command, asynchronous, pipe_in, pipe_out, fds_to_close)
 
       if (ignore_return && cmd->value.Connection->first)
 	cmd->value.Connection->first->flags |= CMD_IGNORE_RETURN;
-      DPRINTF("go execute_command_internal\n");
+      DPRINTF(3, "go execute_command_internal\n");
       execute_command_internal (cmd->value.Connection->first, asynchronous,
 				prev, fildes[1], fd_bitmap);
 
@@ -2629,7 +2630,7 @@ execute_pipeline (command, asynchronous, pipe_in, pipe_out, fds_to_close)
       lstdin = move_to_high_fd (0, 1, -1);
       if (lstdin > 0)
 	{
-	  DPRINTF("go do piping\n");
+	  DPRINTF(3, "go do piping\n");
 	  do_piping (prev, pipe_out);
 	  prev = NO_PIPE;
 	  add_unwind_protect (restore_stdin, lstdin);
@@ -2730,7 +2731,7 @@ execute_connection (command, asynchronous, pipe_in, pipe_out, fds_to_close)
 #endif
 	tc->flags |= CMD_STDIN_REDIR;
 
-      DPRINTF("async command first: %s, pipe_in: %d, pipe_out: %d\n",
+      DPRINTF(3, "async command first: %s, pipe_in: %d, pipe_out: %d\n",
 		      make_command_string(tc), pipe_in, pipe_out);
       exec_result = execute_command_internal (tc, 1, pipe_in, pipe_out, fds_to_close);
       QUIT;
@@ -2741,7 +2742,7 @@ execute_connection (command, asynchronous, pipe_in, pipe_out, fds_to_close)
       second = command->value.Connection->second;
       if (second)
 	{
-          DPRINTF("async command second: %s, pipe_in: %d, pipe_out: %d\n",
+          DPRINTF(3, "async command second: %s, pipe_in: %d, pipe_out: %d\n",
 		      make_command_string(second), pipe_in, pipe_out);
 	  if (ignore_return)
 	    second->flags |= CMD_IGNORE_RETURN;
@@ -2840,7 +2841,7 @@ execute_connection (command, asynchronous, pipe_in, pipe_out, fds_to_close)
       exec_result = EXECUTION_FAILURE;
     }
 
-  DPRINTF("return exec_result: %d", exec_result);
+  DPRINTF(3, "return exec_result: %d", exec_result);
   return exec_result;
 }
 
@@ -3987,7 +3988,7 @@ execute_null_command (redirects, pipe_in, pipe_out, async)
 	  /* Cancel traps, in trap.c. */
 	  restore_original_signals ();		/* XXX */
 
-	  DPRINTF("go do piping\n");
+	  DPRINTF(3, "go do piping\n");
 	  do_piping (pipe_in, pipe_out);
 
 #if defined (COPROCESS_SUPPORT)
@@ -4142,7 +4143,7 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
      int pipe_in, pipe_out, async;
      struct fd_bitmap *fds_to_close;
 {
-  DPRINTF("pipe_in: %d, pipe_out: %d, async: %d\n",
+  DPRINTF(3, "pipe_in: %d, pipe_out: %d, async: %d\n",
 		  pipe_in, pipe_out, async);
   WORD_LIST *words, *lastword;
   char *command_line, *lastarg, *temp;
@@ -4249,13 +4250,13 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 	(simple_command->words->word->word[0] == '%'))
     dofork = 0;
 
-  DPRINTF("dofork?: %d\n", dofork);
+  DPRINTF(3, "dofork?: %d\n", dofork);
   if (dofork)
     {
 #if defined (DGSH)
       if (dgsh)
         {
-	  DPRINTF("for simple command pipe_in: %d, pipe_out: %d, dgsh_in: %d, dgsh_out: %d, executing_function: %d", pipe_in, pipe_out, dgsh_in,
+	  DPRINTF(3, "for simple command pipe_in: %d, pipe_out: %d, dgsh_in: %d, dgsh_out: %d, executing_function: %d", pipe_in, pipe_out, dgsh_in,
 			  dgsh_out, executing_function);
 
 	  /* Set the command's negotiation environment */
@@ -4264,7 +4265,7 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
                 dgsh_proc_fds[dgsh_nest_level]->output_type == 2)) ||
                pipe_in != NO_PIPE)
 	    {
-	      DPRINTF("set DGSH_IN=1");
+	      DPRINTF(3, "set DGSH_IN=1");
 	      putenv("DGSH_IN=1");
               update_export_env_inplace ("DGSH_IN=", 8, "1");
 	      set_dgsh_path();
@@ -4279,7 +4280,7 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 	       dgsh_proc_fds[dgsh_nest_level]->output_type == 2) ||
 	       pipe_out != NO_PIPE)
 	    {
-	      DPRINTF("set DGSH_OUT=1");
+	      DPRINTF(3, "set DGSH_OUT=1");
 	      putenv("DGSH_OUT=1");
               update_export_env_inplace ("DGSH_OUT=", 9, "1");
 	      set_dgsh_path();
@@ -4315,7 +4316,7 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 	  if (fds_to_close)
 	    close_fd_bitmap (fds_to_close);
 
-	  DPRINTF("go do piping\n");
+	  DPRINTF(3, "go do piping\n");
 	  do_piping (pipe_in, pipe_out);
 	  pipe_in = pipe_out = NO_PIPE;
 #if defined (COPROCESS_SUPPORT)
@@ -4344,7 +4345,7 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 #endif
 	  command_line = (char *)NULL;      /* don't free this. */
 	  bind_lastarg ((char *)NULL);
-          DPRINTF("Return %d from fork", result);
+          DPRINTF(3, "Return %d from fork", result);
 	  return (result);
 	}
     }
@@ -4377,21 +4378,21 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 
 	  if (words == 0)
 	    {
-	      DPRINTF("command has no words");
+	      DPRINTF(3, "command has no words");
 	      goto dgsh_command_ready;
 	    }
 
 	  /* command is the dgsh; do not wrap */
 	  if (STREQ(words->word->word, "dgsh"))
 	    {
-	      DPRINTF("Command is \"dgsh\"");
+	      DPRINTF(3, "Command is \"dgsh\"");
 	      goto dgsh_command_ready;
 	    }
 
 	  /* command is wait */
 	  if (STREQ(words->word->word, "wait"))
 	    {
-	      DPRINTF("Command is \"wait\"");
+	      DPRINTF(3, "Command is \"wait\"");
 	      goto dgsh_command_ready;
 	    }
 
@@ -4399,16 +4400,16 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 	     nothing to do. TODO: consider builtins also */
 	  if (find_function (words->word->word) != 0)
 	    {
-	      DPRINTF("Executing function.");
+	      DPRINTF(3, "Executing function.");
 	      executing_function++;
 	      goto dgsh_command_ready;
 	    }
 
           command_pathname = search_for_command (words->word->word, 0);
-	  DPRINTF("Path to command: %s", command_pathname);
+	  DPRINTF(3, "Path to command: %s", command_pathname);
 	  if (command_pathname == NULL)
 	    {
-	      DPRINTF("Command %s cannot be found. Let bash handle it",
+	      DPRINTF(3, "Command %s cannot be found. Let bash handle it",
 			      words->word->word);
 	      goto dgsh_command_ready;
 	    }
@@ -4422,10 +4423,10 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 	          find_special_builtin (words->word->word))
 	        {
 		  is_dgsh_command = 1;
-		  DPRINTF("Command %s is a shell or special builtin; override",
+		  DPRINTF(3, "Command %s is a shell or special builtin; override",
 				  words->word->word);
 		}
-	      DPRINTF("Command %s is in the dgsh path",
+	      DPRINTF(3, "Command %s is in the dgsh path",
 			    command_pathname);
 	      goto dgsh_command_ready;
 	  }
@@ -4435,7 +4436,7 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 	  fd = open(command_pathname, O_RDONLY);
 	  if (fd < 0)
 	    {
-	      DPRINTF("dgsh: unable to open file %s", command_pathname);
+	      DPRINTF(3, "dgsh: unable to open file %s", command_pathname);
 	      return (EXECUTION_FAILURE);
 	    }
 	  len = read (fd, text, sizeof(text) - 1);
@@ -4444,21 +4445,21 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 	  /* Terminate string at newline, end of file, or end of buffer */
 	  text[len] = text[sizeof(text) - 1] = '\0';
 	  m = strchr(text, '\n');
-	  DPRINTF("text: %s", m);
+	  DPRINTF(3, "text: %s", m);
 
 	  if (memcmp(text, "#!", 2) == 0 && (
 		strstr(text, "dgsh-wrap ") ||
 		strstr(text, " --dgsh") ||
 		strstr(text, "env dgsh")))
 	    {
-	      DPRINTF("Script %s invokes dgsh-wrap, --dgsh, or env dgsh",
+	      DPRINTF(3, "Script %s invokes dgsh-wrap, --dgsh, or env dgsh",
 			    command_pathname);
 	      goto dgsh_command_ready;
 
 	    }
 
 	  /* Wrap command for dgsh */
-	  DPRINTF("Command %s requires wrapping",
+	  DPRINTF(3, "Command %s requires wrapping",
 			command_pathname);
 	  sprintf(dgsh_wrap, "dgsh-wrap");
 	  dgsh_wrap_el.word = alloc_word_desc();
@@ -4630,7 +4631,7 @@ run_builtin:
 
 	  if (async)
 	    {
-	      DPRINTF("async: CMD_STDIN_REDIR: %d, pipe_in: %d, stdin_redirects: %d\n",
+	      DPRINTF(3, "async: CMD_STDIN_REDIR: %d, pipe_in: %d, stdin_redirects: %d\n",
 			      simple_command->flags & CMD_STDIN_REDIR, pipe_in,
 			      stdin_redirects(simple_command->redirects));
 	      if ((simple_command->flags & CMD_STDIN_REDIR) &&
@@ -4707,7 +4708,7 @@ run_builtin:
     simple_command->flags &= ~CMD_NO_FORK;
 #endif
 
-  DPRINTF("go execute disk command");
+  DPRINTF(3, "go execute disk command");
   result = execute_disk_command (words, simple_command->redirects, command_line,
 			pipe_in, pipe_out, async, fds_to_close,
 			simple_command->flags);
@@ -5144,7 +5145,7 @@ execute_subshell_builtin_or_function (words, redirects, builtin, var,
   if (fds_to_close)
     close_fd_bitmap (fds_to_close);
 
-  DPRINTF("go do piping\n");
+  DPRINTF(3, "go do piping\n");
   do_piping (pipe_in, pipe_out);
 
   if (do_redirections (redirects, RX_ACTIVE) != 0)
@@ -5419,7 +5420,7 @@ execute_disk_command (words, redirects, command_line, pipe_in, pipe_out,
 	 in asynchronous children. */
       if (async)
 	{
-	  DPRINTF("async: CMD_STDIN_REDIR: %d, pipe_in: %d, stdin_redirects: %d\n",
+	  DPRINTF(3, "async: CMD_STDIN_REDIR: %d, pipe_in: %d, stdin_redirects: %d\n",
 			  cmdflags & CMD_STDIN_REDIR, pipe_in, stdin_redirects(redirects));
 	  if ((cmdflags & CMD_STDIN_REDIR) &&
 		pipe_in == NO_PIPE &&
@@ -5436,7 +5437,7 @@ execute_disk_command (words, redirects, command_line, pipe_in, pipe_out,
       if (fds_to_close)
 	close_fd_bitmap (fds_to_close);
 
-      DPRINTF("go do piping\n");
+      DPRINTF(3, "go do piping\n");
       do_piping (pipe_in, pipe_out);
 
       old_interactive = interactive;
@@ -5485,9 +5486,9 @@ execute_disk_command (words, redirects, command_line, pipe_in, pipe_out,
 	 leave it there, in the same format that the user used to
 	 type it in. */
       args = strvec_from_word_list (words, 0, 0, (int *)NULL);
-      DPRINTF("go shell_execve");
+      DPRINTF(3, "go shell_execve");
       exit (shell_execve (command, args, export_env));
-      DPRINTF("return from shell_execve");
+      DPRINTF(3, "return from shell_execve");
     }
   else
     {
@@ -5894,7 +5895,7 @@ static void
 set_dgsh_path()
 {
   SHELL_VAR *path = find_variable("PATH");
-  DPRINTF("%s(), path: %s, dgshpath: %s",
+  DPRINTF(3, "%s(), path: %s, dgshpath: %s",
 		__func__, path->value, dgshpath);
   if (strncmp(path->value, dgshpath, strlen(dgshpath)))
     {
@@ -5903,7 +5904,7 @@ set_dgsh_path()
       stdpath = strdup(path->value);
       sprintf(newpath, "%s:%s", dgshpath, path->value);
       bind_variable("PATH", newpath, 0);
-      DPRINTF("%s(): after prepending, path: %s",
+      DPRINTF(3, "%s(): after prepending, path: %s",
 		__func__, newpath);
     }
 }
@@ -5950,7 +5951,7 @@ execute_conc_command(conc, n, isoutput, pipe, fds_to_close)
   for (i = 0; i < n; i++)
     {
       re = socketpair (AF_UNIX, SOCK_DGRAM, 0, sp[i]);
-      DPRINTF("Created socketpair %d -- %d\n", sp[i][0], sp[i][1]);
+      DPRINTF(3, "Created socketpair %d -- %d\n", sp[i][0], sp[i][1]);
       if (re < 0)
         {
 	  sys_error (_("pipe error"));
@@ -5966,7 +5967,7 @@ execute_conc_command(conc, n, isoutput, pipe, fds_to_close)
   struct dgsh_conc *current_dgsh_conc = dgsh_conc_fds[dgsh_nest_level];
   struct dgsh_conc *current_dgsh_proc = dgsh_proc_fds[dgsh_nest_level];
 
-  DPRINTF("go execute concentrator command: %s\n",
+  DPRINTF(3, "go execute concentrator command: %s\n",
 		  make_command_string(conc));
   if (isoutput)
     { // scatter block
@@ -5983,15 +5984,15 @@ execute_conc_command(conc, n, isoutput, pipe, fds_to_close)
           current_dgsh_conc->noinput = 1;
           current_dgsh_proc->noinput = 1;
 	}
-      DPRINTF("noinput set to: %d", current_dgsh_proc->noinput);
+      DPRINTF(3, "noinput set to: %d", current_dgsh_proc->noinput);
       current_dgsh_conc->output_type++;
       current_dgsh_proc->output_type++;
       for (i = 0; i < n; i++)
 	{
           current_dgsh_conc->outfda[i] = sp[i][1];
 	  current_dgsh_proc->outfda[i] = sp[i][0];
-	  DPRINTF("set scatter conc %d fd to %d\n", i, sp[i][1]);
-	  DPRINTF("set scatter proc %d fd to %d\n", i, sp[i][0]);
+	  DPRINTF(3, "set scatter conc %d fd to %d\n", i, sp[i][1]);
+	  DPRINTF(3, "set scatter proc %d fd to %d\n", i, sp[i][0]);
 	}
       re = execute_command_internal(conc, 0, *pipe,
 		      DGSH_CONC_PIPES, fds_to_close);
@@ -6011,12 +6012,12 @@ execute_conc_command(conc, n, isoutput, pipe, fds_to_close)
         {
           current_dgsh_conc->infda[i] = sp[i][0];
 	  current_dgsh_proc->infda[i] = sp[i][1];
-	  DPRINTF("set gather conc %d fd to %d\n", i, sp[i][0]);
-	  DPRINTF("set gather proc %d fd to %d\n", i, sp[i][1]);
+	  DPRINTF(3, "set gather conc %d fd to %d\n", i, sp[i][0]);
+	  DPRINTF(3, "set gather proc %d fd to %d\n", i, sp[i][1]);
         }
       re = execute_command_internal(conc, 0, DGSH_CONC_PIPES,
 			  *pipe, fds_to_close);
-      DPRINTF("Conc command returned %d", re);
+      DPRINTF(3, "Conc command returned %d", re);
     }
   close(*pipe);
   //*pipe = current_dgsh_proc->fda[0];
@@ -6024,7 +6025,7 @@ execute_conc_command(conc, n, isoutput, pipe, fds_to_close)
   *pipe = NO_PIPE;
   for (i = 0; i < n; i++)
     close(sp[i][isoutput]);
-  DPRINTF("dgsh-conc %s (output type: %d) at level %d returned %d\n",
+  DPRINTF(3, "dgsh-conc %s (output type: %d) at level %d returned %d\n",
 			  (isoutput ? "output" : "input"),
 			  current_dgsh_conc->output_type,
 			  dgsh_nest_level, re);
@@ -6076,7 +6077,7 @@ create_conc_command(fds, type, prog, output, noinput)
   conc_el[0].word->word = prog;
   conc_el[0].redirect = 0;
   conc = make_simple_command(conc_el[0], conc);
-  DPRINTF("created concentrator command: %s\n", make_command_string(conc));
+  DPRINTF(3, "created concentrator command: %s\n", make_command_string(conc));
   return conc;
 }
 
@@ -6102,8 +6103,8 @@ create_dgsh_conc (command, pipe_in, pipe_out, fds_to_close)
       COMMAND *conc_out, *conc_in, *wait;
       ELEMENT wait_el;
 
-      DPRINTF("CONCENTRATOR ZONE\n");
-      DPRINTF("pipe_in: %d, pipe_out: %d\n", *pipe_in, *pipe_out);
+      DPRINTF(3, "CONCENTRATOR ZONE\n");
+      DPRINTF(3, "pipe_in: %d, pipe_out: %d\n", *pipe_in, *pipe_out);
 
       dgsh_nest_level++;
       if (!dgsh_conc_fds)
@@ -6127,13 +6128,13 @@ create_dgsh_conc (command, pipe_in, pipe_out, fds_to_close)
       /* Create the command in reverse; it is stored in a LIFO way */
       get_dgsh_block_comm_n(command->value.Dgsh->command, &n);
       sprintf(fds, "%d", n);
-      DPRINTF("%d procs in dgsh group\n", n);
+      DPRINTF(3, "%d procs in dgsh group\n", n);
 
       wait_el.word = alloc_word_desc();
       wait_el.word->word = wait_st;
       wait_el.redirect = 0;
       wait = make_simple_command(wait_el, (COMMAND *)NULL);
-      DPRINTF("Inject wait command in multipipe block");
+      DPRINTF(3, "Inject wait command in multipipe block");
       command->value.Dgsh->command->value.Connection->second = wait;
 
       output = 1;
@@ -6162,7 +6163,7 @@ get_dgsh_block_comm_n (command, n)
 {
   if (!command)
     return 0;
-  DPRINTF("command type: %d, command: %s, n: %d\n",
+  DPRINTF(3, "command type: %d, command: %s, n: %d\n",
 		  command->type, make_command_string(command), *n);
   if (command->type != cm_connection)
     (*n)++;
@@ -6185,7 +6186,7 @@ static void change_dgsh_pipes(pipe_in, pipe_out, command)
      int *pipe_in; int *pipe_out; COMMAND *command;
 {
   struct dgsh_conc *dgshp = dgsh_proc_fds[dgsh_nest_level];
-  DPRINTF("output_type: %d, outsize: %d, insize: %d, out_index: %d,"
+  DPRINTF(3, "output_type: %d, outsize: %d, insize: %d, out_index: %d,"
 		  "in_index: %d, pipe_in: %d, pipe_out: %d\n",
 		  dgshp->output_type, dgshp->outfda_size,
 		  dgshp->infda_size, dgshp->out_index,
@@ -6202,7 +6203,7 @@ static void change_dgsh_pipes(pipe_in, pipe_out, command)
        !dgshp->noinput) ||
       (!dgshp->output_type && *pipe_out == NO_PIPE))
     {
-      DPRINTF("go change pipe. command: %s, all out pipes: %d,"
+      DPRINTF(3, "go change pipe. command: %s, all out pipes: %d,"
 		      "in pipes: %d, pipe_in: %d, pipe_out: %d\n"
 		      "noinput: %d",
 		      make_command_string(command),
@@ -6228,7 +6229,7 @@ static void change_dgsh_pipes(pipe_in, pipe_out, command)
 	  dgshp->in_index++;
 	}
     }
-  DPRINTF("dgsh_procs: pipe_in: %d, pipe_out: %d, out_index: %d, in_index: %d\n",
+  DPRINTF(3, "dgsh_procs: pipe_in: %d, pipe_out: %d, out_index: %d, in_index: %d\n",
 		  *pipe_in, *pipe_out, dgshp->out_index, dgshp->in_index);
 }
 #endif
@@ -6256,9 +6257,9 @@ static void
 do_piping (pipe_in, pipe_out)
      int pipe_in, pipe_out;
 {
-  DPRINTF("pipe_in: %d, pipe_out: %d\n", pipe_in, pipe_out);
+  DPRINTF(3, "pipe_in: %d, pipe_out: %d\n", pipe_in, pipe_out);
   int conc_isoutput = -1;
-  DPRINTF("1");
+  DPRINTF(3, "1");
   if (pipe_in != NO_PIPE && pipe_in != INHERITED_PIPE)
     {
       if (pipe_in == DGSH_CONC_PIPES)
@@ -6266,7 +6267,7 @@ do_piping (pipe_in, pipe_out)
           pipe_in = dgsh_conc_fds[dgsh_nest_level]->infda[0];
 	  conc_isoutput = 0;
 	}
-      DPRINTF("dup-close fd %d to get stdin\n", pipe_in);
+      DPRINTF(3, "dup-close fd %d to get stdin\n", pipe_in);
       if (dup2 (pipe_in, 0) < 0)
 	dup_error (pipe_in, 0);
       if (pipe_in > 0)
@@ -6285,7 +6286,7 @@ do_piping (pipe_in, pipe_out)
 	}
       if (pipe_out != REDIRECT_BOTH)
 	{
-	  DPRINTF("dup-close fd %d to get stdout\n", pipe_out);
+	  DPRINTF(3, "dup-close fd %d to get stdout\n", pipe_out);
 	  if (dup2 (pipe_out, 1) < 0)
 	    dup_error (pipe_out, 1);
 	  if (pipe_out == 0 || pipe_out > 1)
@@ -6324,7 +6325,7 @@ do_piping (pipe_in, pipe_out)
       for (i = 1; i < size; i++)
         {
           int fd = dup2(fda[i], i + 2);
-	  DPRINTF("dup-close fd %d to get %d\n", fda[i], fd);
+	  DPRINTF(3, "dup-close fd %d to get %d\n", fda[i], fd);
 	  if (fd < 0)
 	    dup_error (fda[1], i + 2);
           close(fda[i]);

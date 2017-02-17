@@ -45,6 +45,8 @@
 #  include "bashhist.h"
 #endif
 
+#include "dgsh-debug.h"		/* DPRINTF */
+
 extern int EOF_reached;
 extern int indirection_level;
 extern int posixly_correct;
