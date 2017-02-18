@@ -152,7 +152,7 @@ extern int yydebug;
 typedef union YYSTYPE YYSTYPE;
 union YYSTYPE
 {
-#line 329 "./parse.y" /* yacc.c:1909  */
+#line 331 "./parse.y" /* yacc.c:1909  */
 
   WORD_DESC *word;		/* the word that we read. */
   int number;			/* the number that we read. */
