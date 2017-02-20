@@ -6259,7 +6259,6 @@ do_piping (pipe_in, pipe_out)
 {
   DPRINTF(4, "pipe_in: %d, pipe_out: %d\n", pipe_in, pipe_out);
   int conc_isoutput = -1;
-  DPRINTF(4, "1");
   if (pipe_in != NO_PIPE && pipe_in != INHERITED_PIPE)
     {
       if (pipe_in == DGSH_CONC_PIPES)
