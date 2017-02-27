@@ -1177,8 +1177,8 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 	  if (!compatible)
 	    {
 	      dgsh = 0;
-	      DPRINTF("A non-dgsh connector is used in this command.");
-	      DPRINTF("Set dgsh=0 in order to fall back to bash.");
+	      DPRINTF(4, "A non-dgsh connector is used in this command.");
+	      DPRINTF(4, "Set dgsh=0 in order to fall back to bash.");
 	    }
 	  dgsh_graph_checked = 1;
 	}
@@ -5930,7 +5930,7 @@ is_dgsh (command, compatible)
 {
   if (!command)
     return;
-  DPRINTF("command type: %d, command: %s, compatible: %d\n",
+  DPRINTF(4, "command type: %d, command: %s, compatible: %d\n",
 		  command->type, make_command_string(command), *compatible);
   if (command->type == cm_connection)
     {
@@ -5969,7 +5969,7 @@ dgsh_check_wrap(command)
 	COMMAND *new_command;
 
 	/* No wrapping required */
-	DPRINTF("Check if wrapping is required");
+	DPRINTF(4, "Check if wrapping is required");
 	if ((*command)->type == cm_connection ||
 	    (*command)->type == cm_simple ||
 	    (*command)->type == cm_dgsh ||
@@ -5978,7 +5978,7 @@ dgsh_check_wrap(command)
 
 	/* enclose the command in single quotes escaping any inside it. */
 	command_string = sh_single_quote(make_command_string(*command));
-	DPRINTF("Before wrapping command is: %s\n", command_string);
+	DPRINTF(4, "Before wrapping command is: %s\n", command_string);
 
 	dgsh_el[3].word = alloc_word_desc();
 	dgsh_el[3].word->word = command_string;
@@ -5999,7 +5999,7 @@ dgsh_check_wrap(command)
 	new_command = make_simple_command(dgsh_el[2], new_command);
 	new_command = make_simple_command(dgsh_el[1], new_command);
 	new_command = make_simple_command(dgsh_el[0], new_command);
-	DPRINTF("After wrapping new command is: %s",
+	DPRINTF(4, "After wrapping new command is: %s",
 			make_command_string(new_command));
 
 	*command = new_command;
