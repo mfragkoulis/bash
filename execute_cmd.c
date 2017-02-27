@@ -2663,6 +2663,11 @@ execute_pipeline (command, asynchronous, pipe_in, pipe_out, fds_to_close)
   if (prev >= 0)
     add_unwind_protect (close, prev);
 
+#if defined (DGSH)
+      if (dgsh)
+        dgsh_check_wrap(&cmd);
+#endif
+
   exec_result = execute_command_internal (cmd, asynchronous, prev, pipe_out, fds_to_close);
 
   if (lstdin > 0)
@@ -5950,26 +5955,22 @@ dgsh_check_wrap(command)
 	sprintf(dgshwrap_com, "dgsh-wrap");
 	char *bash_com = malloc(sizeof(char) * 5);
 	sprintf(bash_com, "bash");
-	char *c, *command_string;
+	char *command_string;
 	WORD_LIST *words;
 	COMMAND *new_command;
 
 	/* No wrapping required */
+	DPRINTF("Check if wrapping is required");
 	if ((*command)->type == cm_connection ||
 	    (*command)->type == cm_simple ||
 	    (*command)->type == cm_dgsh ||
 	    (*command)->type == cm_function_def)
 		return;
 
-	c = make_command_string(*command);
-	DPRINTF("Before wrapping command is: %s", c);
+	/* enclose the command in single quotes escaping any inside it. */
+	command_string = sh_single_quote(make_command_string(*command));
+	DPRINTF("Before wrapping command is: %s\n", command_string);
 
-	/* TODO: single or double quotes required? Tough to say. Revisit. */
-	if (strchr(c, '$') || strchr(c, '\''))
-		sprintf(quote, "\"");
-
-	command_string = malloc(sizeof(char) * (strlen(c) + 3));
-	sprintf(command_string, "%s%s%s", quote, c, quote);
 	dgsh_el[3].word = alloc_word_desc();
 	dgsh_el[3].word->word = command_string;
 	dgsh_el[3].redirect = 0;
