@@ -45,6 +45,8 @@
 #  include "bashhist.h"
 #endif
 
+#include "dgsh-debug.h"		/* DPRINTF */
+
 extern int EOF_reached;
 extern int indirection_level;
 extern int posixly_correct;
@@ -235,7 +237,7 @@ parse_command ()
     }
 
   current_command_line_count = 0;
-  DPRINTF("go yyparse()\n");
+  DPRINTF(4, "go yyparse()\n");
   r = yyparse ();
 
   if (need_here_doc)

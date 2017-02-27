@@ -231,6 +231,8 @@ int posixly_correct = 1;	/* Non-zero means posix.2 superset. */
 int posixly_correct = 0;	/* Non-zero means posix.2 superset. */
 #endif
 
+#include "dgsh-debug.h"		/* dgsh: DPRINTF() */
+int dgsh_debug_level = 0;
 #if defined (DGSH)
 char DGSH_SHELL_NAME[] = "dgsh";
 int dgsh = 0;
@@ -238,9 +240,13 @@ int dgsh_in = 0;
 int dgsh_out = 0;
 /* Path where the dgsh-specific commands are installed.
  * These require negotiation, so they can only be run from within dgsh.
- * This path is prepended to the environment's PATH
+ * This path is prepended to the environment's PATH when commands
+ * execute in a dgsh context.
+ * The path is normally hardcoded to the macro DGSHPATH, but it can also be
+ * set (typically when running tests) from the environment variable
+ * DGSHPATH.
  */
-char *dgshpath = DGSHPATH;
+char *dgshpath;
 #endif
 
 /* Some long-winded argument names.  These are obviously new. */
@@ -516,7 +522,14 @@ main (argc, argv, env)
     disable_priv_mode ();
 
 #if defined (DGSH)
-  DPRINTF("bash: pgrp: %d", getpgrp());
+  char *debug_level = getenv("DGSH_DEBUG_LEVEL");
+  if (debug_level != NULL)
+    dgsh_debug_level = atoi(debug_level);
+
+  dgshpath = getenv("DGSHPATH");
+  if (dgshpath == NULL)
+    dgshpath = DGSHPATH;
+  DPRINTF(4, "bash: pgrp: %d, dgshpath: %s", getpgrp(), dgshpath);
 #endif
 
   /* Need to get the argument to a -c option processed in the
@@ -530,7 +543,7 @@ main (argc, argv, env)
 	  report_error (_("%s: option requires an argument"), "-c");
 	  exit (EX_BADUSAGE);
 	}
-      DPRINTF("command: %s\n", command_execution_string);
+      DPRINTF(4, "command: %s\n", command_execution_string);
       arg_index++;
     }
   this_command_name = (char *)NULL;
@@ -690,7 +703,7 @@ main (argc, argv, env)
 
 #if defined (DGSH)
   dgsh = dgsh || shell_is_dgsh(shell_name);
-  DPRINTF("Check if shell is dgsh. dgsh: %d", dgsh);
+  DPRINTF(4, "Check if shell is dgsh. dgsh: %d", dgsh);
   if (dgsh)
     {
       char *dgshin = getenv("DGSH_IN");
@@ -699,7 +712,7 @@ main (argc, argv, env)
         dgsh_in = atoi(dgshin);
       if (dgshout)
         dgsh_out = atoi(dgshout);
-      DPRINTF("dgsh_in: %d, dgsh_out: %d", dgsh_in, dgsh_out);
+      DPRINTF(4, "dgsh_in: %d, dgsh_out: %d", dgsh_in, dgsh_out);
       // To execute exported functions with concise syntax
       add_alias("call", "dgsh-wrap bash -c");
       add_alias("call_with_stdin", "dgsh-wrap -s bash -c");
@@ -735,7 +748,7 @@ main (argc, argv, env)
 
 #if defined (ONESHOT)
       executing = 1;
-      DPRINTF("handle command\n");
+      DPRINTF(4, "handle command\n");
       run_one_command (command_execution_string);
       exit_shell (last_command_exit_value);
 #else /* ONESHOT */
@@ -748,7 +761,7 @@ main (argc, argv, env)
      default_input as appropriate. */
   if (arg_index != argc && read_from_stdin == 0)
     {
-      DPRINTF("input from file: %s\n", argv[arg_index]);
+      DPRINTF(4, "input from file: %s\n", argv[arg_index]);
       open_shell_script (argv[arg_index]);
       arg_index++;
     }
@@ -853,7 +866,7 @@ parse_long_options (argv, arg_start, arg_end)
 
       arg_index++;
     }
-  DPRINTF("dgsh: %d\n", dgsh);
+  DPRINTF(4, "dgsh: %d\n", dgsh);
   return (arg_index);
 }
 
@@ -952,7 +965,7 @@ void
 exit_shell (s)
      int s;
 {
-  DPRINTF("exit shell: status %d\n", s);
+  DPRINTF(4, "exit shell: status %d\n", s);
   fflush (stdout);		/* XXX */
   fflush (stderr);
 
@@ -1405,8 +1418,8 @@ run_one_command (command)
 	  command_error ("run_one_command", CMDERR_BADJUMP, code, 0);
 	}
     }
-   DPRINTF("parse and execute\n");
-   return (parse_and_execute (savestring (command), "-c", SEVAL_NOHIST));
+  DPRINTF(4, "parse and execute\n");
+  return (parse_and_execute (savestring (command), "-c", SEVAL_NOHIST));
 }
 #endif /* ONESHOT */
 
