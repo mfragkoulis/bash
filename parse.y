@@ -1023,7 +1023,7 @@ dgsh_command:	DGSH_START dgsh_block_list DGSH_END
 			}
 	;
 
-dgsh_block_list:newline_list dgsh_list '&' newline_list
+dgsh_block_list:newline_list dgsh_list '\n' newline_list
 			{
 			  if ($2->type == cm_connection)
 			    $$ = connect_async_list ($2, (COMMAND *)NULL, '&');
@@ -1032,7 +1032,7 @@ dgsh_block_list:newline_list dgsh_list '&' newline_list
 			}
 	;
 
-dgsh_list:	dgsh_list '&' newline_list dgsh_list
+dgsh_list:	dgsh_list '\n' newline_list dgsh_list
 			{
 			  if ($1->type == cm_connection)
 			    $$ = connect_async_list ($1, $4, '&');
