@@ -1030,9 +1030,37 @@ dgsh_block_list:newline_list dgsh_list '\n' newline_list
 			  else
 			    $$ = command_connect ($2, (COMMAND *)NULL, '&');
 			}
+	|	newline_list dgsh_list ';' newline_list
+			{
+			  if ($2->type == cm_connection)
+			    $$ = connect_async_list ($2, (COMMAND *)NULL, '&');
+			  else
+			    $$ = command_connect ($2, (COMMAND *)NULL, '&');
+			}
+	|	newline_list dgsh_list '&' newline_list
+			{
+			  if ($2->type == cm_connection)
+			    $$ = connect_async_list ($2, (COMMAND *)NULL, '&');
+			  else
+			    $$ = command_connect ($2, (COMMAND *)NULL, '&');
+			}
 	;
 
 dgsh_list:	dgsh_list '\n' newline_list dgsh_list
+			{
+			  if ($1->type == cm_connection)
+			    $$ = connect_async_list ($1, $4, '&');
+			  else
+			    $$ = command_connect ($1, $4, '&');
+			}
+	|	dgsh_list ';' newline_list dgsh_list
+			{
+			  if ($1->type == cm_connection)
+			    $$ = connect_async_list ($1, $4, '&');
+			  else
+			    $$ = command_connect ($1, $4, '&');
+			}
+	|	dgsh_list '&' newline_list dgsh_list
 			{
 			  if ($1->type == cm_connection)
 			    $$ = connect_async_list ($1, $4, '&');
