@@ -715,7 +715,7 @@ main (argc, argv, env)
       DPRINTF(4, "dgsh_in: %d, dgsh_out: %d", dgsh_in, dgsh_out);
       // To execute exported functions with concise syntax
       add_alias("call", "dgsh-wrap bash -c");
-      add_alias("call_with_stdin", "dgsh-wrap -s bash -c");
+      add_alias("call_with_stdin", "dgsh-wrap -I bash -c");
       expand_aliases = 1;
     }
 #endif
