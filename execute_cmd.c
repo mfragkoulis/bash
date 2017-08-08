@@ -950,6 +950,7 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
          {
            DPRINTF(4, "dgshpath not in path: %s", stdpath);
            bind_variable("PATH", stdpath, 0);
+           stupidly_hack_special_variables ("PATH");
            free(stdpath);
 	 }
     }
@@ -6021,6 +6022,7 @@ set_dgsh_path()
       stdpath = strdup(path->value);
       sprintf(newpath, "%s:%s", dgshpath, path->value);
       bind_variable("PATH", newpath, 0);
+      stupidly_hack_special_variables ("PATH");
       DPRINTF(4, "%s(): after prepending, path: %s",
 		__func__, newpath);
     }
