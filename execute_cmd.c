@@ -102,6 +102,8 @@ extern int errno;
 #if defined (DGSH)
 #include <sys/socket.h>		/* socketpair(), AF_UNIX, SOCK_DGRAM */
 #include <assert.h>		/* assert() */
+#include "dgsh_util.h"
+
 #define DGSH_CONC_PIPES -3
 #define INHERITED_PIPE -4
 
@@ -4405,10 +4407,8 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
       if (dgsh && dofork)
         {
           ELEMENT dgsh_wrap_el;
-	  int fd, len;
-	  char text[1024], *m, *line = NULL, *command_pathname;
+	  char *command_pathname;
 	  char dgsh_wrap[10];
-	  size_t buf_size;
 
 	  if (words == 0)
 	    {
@@ -4450,8 +4450,7 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 
 	  /* command is: in a dgsh path;
 	     nothing to do. */
-	  m = strrchr(command_pathname, '/');
-	  if (memcmp(m - DGSH_PATH_LEN, DGSH_PATH, DGSH_PATH_LEN) == 0)
+	  if (is_dgsh_program(command_pathname))
 	    {
 	      if (find_shell_builtin (words->word->word) ||
 	          find_special_builtin (words->word->word))
@@ -4464,33 +4463,6 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 			    command_pathname);
 	      goto dgsh_command_ready;
 	  }
-
-	  /* Open and read 1K characters from command file.
-	     Look for "dgsh-wrap" or "env dgsh" up to the first newline */
-	  fd = open(command_pathname, O_RDONLY);
-	  if (fd < 0)
-	    {
-	      DPRINTF(4, "dgsh: unable to open file %s", command_pathname);
-	      return (EXECUTION_FAILURE);
-	    }
-	  len = read (fd, text, sizeof(text) - 1);
-	  close (fd);
-
-	  /* Terminate string at newline, end of file, or end of buffer */
-	  text[len] = text[sizeof(text) - 1] = '\0';
-	  m = strchr(text, '\n');
-	  DPRINTF(4, "text: %s", m);
-
-	  if (memcmp(text, "#!", 2) == 0 && (
-		strstr(text, "dgsh-wrap ") ||
-		strstr(text, " --dgsh") ||
-		strstr(text, "env dgsh")))
-	    {
-	      DPRINTF(4, "Script %s invokes dgsh-wrap, --dgsh, or env dgsh",
-			    command_pathname);
-	      goto dgsh_command_ready;
-
-	    }
 
 	  /* Wrap command for dgsh */
 	  DPRINTF(4, "Command %s requires wrapping",

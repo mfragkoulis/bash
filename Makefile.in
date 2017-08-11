@@ -427,6 +427,7 @@ LIBRARY_LDFLAGS = $(READLINE_LDFLAGS) $(HISTORY_LDFLAGS) $(GLOB_LDFLAGS) \
 
 # The main source code for the Bourne Again SHell.
 CSOURCES = shell.c eval.c parse.y general.c make_cmd.c print_cmd.c y.tab.c \
+	   dgsh_util.c \
 	   dispose_cmd.c execute_cmd.c variables.c $(GLOBC) version.c \
 	   expr.c copy_cmd.c flags.c subst.c hashcmd.c hashlib.c mailcheck.c \
 	   test.c trap.c alias.c jobs.c nojobs.c $(ALLOC_FILES) braces.c \
@@ -436,6 +437,7 @@ CSOURCES = shell.c eval.c parse.y general.c make_cmd.c print_cmd.c y.tab.c \
 	   pcomplete.c pcomplib.c syntax.c xmalloc.c
 
 HSOURCES = shell.h flags.h trap.h hashcmd.h hashlib.h jobs.h builtins.h \
+	   dgsh_util.h \
 	   general.h variables.h config.h $(ALLOC_HEADERS) alias.h \
 	   quit.h unwind_prot.h syntax.h ${GRAM_H} \
 	   command.h input.h error.h bashansi.h dispose_cmd.h make_cmd.h \
@@ -456,6 +458,7 @@ SIGNAMES_O = @SIGNAMES_O@
 
 # Matching object files.
 OBJECTS	 = shell.o eval.o y.tab.o general.o make_cmd.o print_cmd.o $(GLOBO) \
+	   dgsh_util.o \
 	   dispose_cmd.o execute_cmd.o variables.o copy_cmd.o error.o \
 	   expr.o flags.o $(JOBS_O) subst.o hashcmd.o hashlib.o mailcheck.o \
 	   trap.o input.o unwind_prot.o pathexp.o sig.o test.o version.o \
@@ -933,7 +936,7 @@ eval.o: make_cmd.h subst.h sig.h pathnames.h externs.h
 eval.o: input.h execute_cmd.h 
 execute_cmd.o: config.h bashtypes.h ${BASHINCDIR}/filecntl.h ${BASHINCDIR}/posixstat.h bashansi.h ${BASHINCDIR}/ansi_stdlib.h
 execute_cmd.o: shell.h syntax.h config.h bashjmp.h ${BASHINCDIR}/posixjmp.h command.h ${BASHINCDIR}/stdc.h error.h
-execute_cmd.o: general.h xmalloc.h bashtypes.h variables.h arrayfunc.h conftypes.h array.h hashlib.h
+execute_cmd.o: dgsh_util.o general.h xmalloc.h bashtypes.h variables.h arrayfunc.h conftypes.h array.h hashlib.h
 execute_cmd.o: quit.h ${BASHINCDIR}/maxpath.h unwind_prot.h dispose_cmd.h
 execute_cmd.o: make_cmd.h subst.h sig.h pathnames.h externs.h 
 execute_cmd.o: ${BASHINCDIR}/memalloc.h ${GRAM_H} flags.h builtins.h jobs.h quit.h siglist.h
