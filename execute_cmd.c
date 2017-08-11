@@ -114,6 +114,15 @@ extern int errno;
  * in order not to set the dgsh path
  */
 static int executing_function = 0;
+
+/* Track whether functions have pipe in/out */
+struct func_dgsh_io {
+  int pipe_in;
+  int pipe_out;
+};
+
+static struct func_dgsh_io **func_dgsh_io = NULL;
+
 /* Execute a dgsh command instead of a builtin */
 static int is_dgsh_command = 0;
 /* Hold whether a check for a command's compatibility
@@ -1143,7 +1152,11 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 				      fds_to_close);
 	}
       if (executing_function > 0)
-        executing_function--;
+        {
+          executing_function--;
+          DPRINTF(4, "Free func_dgsh_io[%d]", executing_function);
+          free(func_dgsh_io[executing_function]);
+        }
       break;
 
 #if defined (DGSH)
@@ -4246,11 +4259,12 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 	    {
 	      if (dgsh_in > 0 || executing_function > 0)
 		{
-	          if (executing_function > 0)
+	          if (executing_function > 0 &&
+                      func_dgsh_io[executing_function-1]->pipe_in == 1)
 		    {
-	              char *dgshin = getenv("DGSH_IN");
-	              assert(dgshin);
-	              dgsh_in = atoi(dgshin);
+                      DPRINTF(4, "Set dgsh_in=1 for func_dgsh_io[%d]", executing_function-1);
+	              dgsh_in = 1;
+                      func_dgsh_io[executing_function-1]->pipe_in = 0;
 		    }
 		  if (dgsh_in > 0)
 		    pipe_in = INHERITED_PIPE;
@@ -4260,11 +4274,12 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 	    {
 	      if (dgsh_out > 0 || executing_function > 0)
 		{
-	          if (executing_function > 0)
+	          if (executing_function > 0 &&
+                      func_dgsh_io[executing_function-1]->pipe_out == 1)
 		    {
-	              char *dgshout = getenv("DGSH_OUT");
-	              assert(dgshout);
-	              dgsh_out = atoi(dgshout);
+                      DPRINTF(4, "Set dgsh_out=1 for func_dgsh_io[%d]", executing_function-1);
+	              dgsh_out = 1;
+                      func_dgsh_io[executing_function-1]->pipe_out = 0;
 		    }
 		  if (dgsh_out > 0)
 		    pipe_out = INHERITED_PIPE;
@@ -4327,6 +4342,8 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 	      putenv("DGSH_OUT=0");
               update_export_env_inplace ("DGSH_OUT=", 9, "0");
 	    }
+	  DPRINTF(4, "after putenv pipe_in: %d, pipe_out: %d, dgsh_in: %d, dgsh_out: %d, executing_function: %d", pipe_in, pipe_out, dgsh_in,
+			  dgsh_out, executing_function);
 	}
 #endif
       /* Do this now, because execute_disk_command will do it anyway in the
@@ -4352,7 +4369,29 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 	  if (fds_to_close)
 	    close_fd_bitmap (fds_to_close);
 
-	  DPRINTF(4, "go do piping\n");
+          /* Record a function's pipe connections before piping */
+	  if (simple_command->words && simple_command->words->word &&
+	      simple_command->words->word->word &&
+	      find_function (simple_command->words->word->word) != 0)
+            {
+              executing_function++;
+              if (!func_dgsh_io)
+                func_dgsh_io = (struct func_dgsh_io **)xmalloc(sizeof(struct func_dgsh_io *));
+              else
+                func_dgsh_io = (struct func_dgsh_io **)xrealloc(func_dgsh_io,
+			        sizeof(struct func_dgsh_io *) * executing_function);
+              func_dgsh_io[executing_function-1] = (struct func_dgsh_io *)xmalloc(
+		                                    sizeof(struct func_dgsh_io));
+              func_dgsh_io[executing_function-1]->pipe_in = (pipe_in != -1);
+              func_dgsh_io[executing_function-1]->pipe_out = (pipe_out != -1);
+              DPRINTF(4, "is_command_function: %s", simple_command->words->word->word);
+              DPRINTF(4, "Allocated func_dgsh_io[%d]", executing_function-1);
+              DPRINTF(4, "func_dgsh_io[%d]->pipe_in = %d, func_dgsh_io[%d]->pipe_out = %d",
+                          executing_function-1, func_dgsh_io[executing_function-1]->pipe_in,
+                          executing_function-1, func_dgsh_io[executing_function-1]->pipe_out);
+            }
+
+	  DPRINTF(4, "go do piping after make_child()\n");
 	  do_piping (pipe_in, pipe_out);
 	  pipe_in = pipe_out = NO_PIPE;
 #if defined (COPROCESS_SUPPORT)
@@ -4434,8 +4473,7 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 	     nothing to do. TODO: consider builtins also */
 	  if (find_function (words->word->word) != 0)
 	    {
-	      DPRINTF(4, "Executing function.");
-	      executing_function++;
+	      DPRINTF(4, "Executing function: %d", executing_function);
 	      goto dgsh_command_ready;
 	    }
 
