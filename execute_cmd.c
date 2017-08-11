@@ -105,6 +105,9 @@ extern int errno;
 #define DGSH_CONC_PIPES -3
 #define INHERITED_PIPE -4
 
+#define DGSH_PATH "/dgsh"
+#define DGSH_PATH_LEN (sizeof(DGSH_PATH) - 1)
+
 /* Know when a function() is executing
  * in order not to set the dgsh path
  */
@@ -4483,10 +4486,10 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 	      goto dgsh_command_ready;
 	    }
 
-	  /* command is: in the dgsh path;
+	  /* command is: in a dgsh path;
 	     nothing to do. */
-	  if (strstr(command_pathname, dgshpath) ||
-	      strstr(command_pathname, "/build/libexec/dgsh"))
+	  m = strrchr(command_pathname, '/');
+	  if (memcmp(m - DGSH_PATH_LEN, DGSH_PATH, DGSH_PATH_LEN) == 0)
 	    {
 	      if (find_shell_builtin (words->word->word) ||
 	          find_special_builtin (words->word->word))
