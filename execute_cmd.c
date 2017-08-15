@@ -620,6 +620,9 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
   volatile int ofifo, nfifo, osize, saved_fifo;
   volatile char *ofifo_list;
 #endif
+#if defined (DGSH)
+  int pushed_dgsh;
+#endif
 
   DPRINTF(4, "pipe_in: %d, pipe_out: %d, asynchronous: %d\n",
 		  pipe_in, pipe_out, asynchronous);
@@ -1188,6 +1191,7 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
     case cm_connection:
       DPRINTF(4, "cm_connection case\n");
 #if defined (DGSH)
+      pushed_dgsh = dgsh;
       if (dgsh && !dgsh_graph_checked)
         {
 	  int compatible = 1;
@@ -1203,6 +1207,9 @@ execute_command_internal (command, asynchronous, pipe_in, pipe_out,
 #endif
       exec_result = execute_connection (command, asynchronous,
 					pipe_in, pipe_out, fds_to_close);
+#if defined (DGSH)
+      dgsh = pushed_dgsh;
+#endif
       break;
 
 #if defined (DPAREN_ARITHMETIC)
