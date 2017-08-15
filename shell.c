@@ -239,7 +239,9 @@ int dgsh = 0;
 int dgsh_in = 0;
 int dgsh_out = 0;
 /* Path where the dgsh-specific commands are installed.
- * These require negotiation, so they can only be run from within dgsh.
+ * These may require negotiation or may offer less functionality than
+ * the corresponding native ones, so they are only made available
+ * from within dgsh.
  * This path is prepended to the environment's PATH when commands
  * execute in a dgsh context.
  * The path is normally hardcoded to the macro DGSHPATH, but it can also be
