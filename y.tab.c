@@ -5156,10 +5156,6 @@ static int open_brace_count;
 		parser_state &= ~(PST_CONDCMD|PST_CONDEXPR); \
 	      else if (word_token_alist[i].token == COND_START) \
 		parser_state |= PST_CONDCMD; \
-	      else if (word_token_alist[i].token == DGSH_END) \
-		parser_state &= ~(PST_DGSH|PST_DGSHEXPR); \
-	      else if (word_token_alist[i].token == DGSH_START) \
-		parser_state |= PST_DGSHEXPR; \
 	      else if (word_token_alist[i].token == '{') \
 		open_brace_count++; \
 	      else if (word_token_alist[i].token == '}' && open_brace_count) \
@@ -7412,6 +7408,8 @@ reserved_word_acceptable (toksym)
     case '&':
     case '{':
     case '}':		/* XXX */
+    case DGSH_START:
+    case DGSH_END:
     case AND_AND:
     case BANG:
     case BAR_AND:
