@@ -326,7 +326,7 @@ tparam1 (string, outstring, len, up, left, argp)
   return outstring;
 }
 
-#ifdef DEBUG
+#ifdef TERMCAP_DEBUG
 
 main (argc, argv)
      int argc;
@@ -342,4 +342,4 @@ main (argc, argv)
   return 0;
 }
 
-#endif /* DEBUG */
+#endif /* TERMCAP_DEBUG */
