@@ -19,7 +19,11 @@
 */
 
 #include <ctype.h>
+#ifdef __APPLE__
+#include <libelf/libelf.h>
+#else
 #include <elf.h>
+#endif
 #include <err.h>
 #include <fcntl.h>
 #include <stdio.h>
