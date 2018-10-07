@@ -39,7 +39,6 @@
 #define MAX_LINE_LEN 1024
 
 #ifdef __APPLE__
-
 void *
 load_bytes(FILE *obj_file, int offset, int size)
 {
@@ -49,56 +48,75 @@ load_bytes(FILE *obj_file, int offset, int size)
   return buf;
 }
 
-void
-dump_sections(FILE *obj_file, uint32_t type, int offset, int is_swap, uint32_t nsects)
+
+int
+has_macho_sections(FILE *obj_file, uint32_t type, int offset, int is_swap,
+		uint32_t nsections)
 {
   int actual_offset = offset;
-  fprintf(stderr, "%s: %d sections at offset: %d\n", __func__, nsects, offset);
-  for (int  i = 0; i < nsects; i++) {
+  for (int  i = 0; i < nsections; i++) {
     if (type == LC_SEGMENT_64) {
       int struct_size = sizeof(struct section_64);
-      struct section_64 *sect = load_bytes(obj_file, actual_offset,
+      struct section_64 *section = load_bytes(obj_file, actual_offset,
                                            struct_size);
+ 
       if (is_swap) {
-        fprintf(stderr, "swap section64\n");
-        swap_section_64(sect, nsects, 0);
+        swap_section_64(section, nsections, 0);
       }
-      fprintf(stderr, "section64 %d: size %d, struct_size: %d, file offset: %d, align: %d\n", i,
-                       sect->size, struct_size, sect->offset, sect->align);
 
-      fprintf(stderr, "section64 %d: segname: %s\n", i, sect->segname);
-      fprintf(stderr, "section64 %d: sectname: %s\n", i, sect->sectname);
-      fprintf(stderr, "section64 %d: addr: %lx\n", i, sect->addr);
-      //fprintf(stderr, "section64 %d: contents: %s\n", i, (char *)(sect->addr + sect->offset));
-      char *b = load_bytes(obj_file, sect->offset, sect->size);
-      fprintf(stderr, "section64 %d: contents: %s\n", i, b);
+      if (strcmp(section->segname, ".note.ident")) {
+        free(section);
+        continue;
+      }
 
+      char *section_data = load_bytes(obj_file, section->offset, section->size);
+
+      if (section->size == sizeof(DGSH_NAME) &&
+		 memcmp(section_data, DGSH_NAME, sizeof(DGSH_NAME)) == 0) {
+             free(section);
+	     free(section_data);
+	     return 1;
+      }
       actual_offset += struct_size;
-      free(sect);
+
+      free(section);
+      free(section_data);
     } else if (type == LC_SEGMENT) {
       int struct_size = sizeof(struct section);
-      struct section *sect = load_bytes(obj_file, actual_offset, struct_size);
+      struct section *section = load_bytes(obj_file, actual_offset, struct_size);
+
       if (is_swap) {
-        fprintf(stderr, "swap section\n");
-        swap_section(sect, nsects, 0);
+        swap_section(section, nsections, 0);
       }
-      fprintf(stderr, "section %d: size %d, struct_size: %d, file offset: %d, align: %d\n", i,
-                       sect->size, struct_size, sect->offset, sect->align);
 
-      fprintf(stderr, "segname: %s\n", sect->segname);
-      fprintf(stderr, "sectname: %s\n", sect->sectname);
+      if (strcmp(section->segname, ".note.ident")) {
+        free(section);
+        continue;
+      }
 
+      char *section_data = load_bytes(obj_file, section->offset, section->size);
+
+      if (section->size == sizeof(DGSH_NAME) &&
+		 memcmp(section_data, DGSH_NAME, sizeof(DGSH_NAME)) == 0) {
+             free(section);
+	     free(section_data);
+	     return 1;
+      }
       actual_offset += struct_size;
-      free(sect);
+
+      free(section);
+      free(section_data);
     }
   }
+  return 0;
 }
 
-void
-dump_segment_commands(FILE *obj_file, int offset, int is_swap, uint32_t ncmds)
+
+int
+has_macho_segment_commands(FILE *obj_file, int offset, int is_swap, uint32_t ncmds)
 {
+  int r;
   int actual_offset = offset;
-  fprintf(stderr, "ncmds: %d\n", ncmds);
   for (int  i = 0; i < ncmds; i++) {
     struct load_command *cmd = load_bytes(obj_file, actual_offset,
                                           sizeof(struct load_command));
@@ -114,11 +132,8 @@ dump_segment_commands(FILE *obj_file, int offset, int is_swap, uint32_t ncmds)
         swap_segment_command_64(segment, 0);
       }
 
-      fprintf(stderr, "segname: %s, size: %d\n", segment->segname, segment->cmdsize);
-      dump_sections(obj_file, cmd->cmd, actual_offset + struct_size, is_swap,
+      r = has_macho_sections(obj_file, cmd->cmd, actual_offset + struct_size, is_swap,
                     segment->nsects);
-      fprintf(stderr, "cmdsize: %d, segment command size: %lu, sections: %d\n",
-              cmd->cmdsize, sizeof(struct segment_command_64), segment->nsects);
 
       free(segment);
     } else if (cmd->cmd == LC_SEGMENT) {
@@ -129,11 +144,13 @@ dump_segment_commands(FILE *obj_file, int offset, int is_swap, uint32_t ncmds)
         swap_segment_command(segment, 0);
       }
 
-      fprintf(stderr, "segname: %s\n", segment->segname);
-      dump_sections(obj_file, cmd->cmd, actual_offset + struct_size, is_swap,
+      if (strcmp(segment->segname, ".note.ident")) {
+        free(segment);
+        continue;
+      }
+
+      r = has_macho_sections(obj_file, cmd->cmd, actual_offset + struct_size, is_swap,
                     segment->nsects);
-      fprintf(stderr, "cmdsize: %d, segment command size: %lu, sections: %d\n",
-              cmd->cmdsize, sizeof(struct segment_command), segment->nsects);
 
       free(segment);
     }
@@ -141,11 +158,16 @@ dump_segment_commands(FILE *obj_file, int offset, int is_swap, uint32_t ncmds)
     actual_offset += cmd->cmdsize;
 
     free(cmd);
+
+    if (r == 1)
+        return r;
   }
+  return 0;
 }
 
-void
-dump_mach_header(FILE *obj_file, int offset, int is_64, int is_swap)
+
+int
+has_macho_header(FILE *obj_file, int offset, int is_64, int is_swap)
 {
   uint32_t ncmds;
   int load_commands_offset = offset;
@@ -173,8 +195,9 @@ dump_mach_header(FILE *obj_file, int offset, int is_64, int is_swap)
     free(header);
   }
 
-  dump_segment_commands(obj_file, load_commands_offset, is_swap, ncmds);
+  return has_macho_segment_commands(obj_file, load_commands_offset, is_swap, ncmds);
 }
+
 
 int should_swap_bytes(uint32_t magic) {
   return magic == MH_CIGAM || magic == MH_CIGAM_64;
@@ -186,6 +209,7 @@ is_magic_64(uint32_t magic)
   return magic == MH_MAGIC_64 || magic == MH_CIGAM_64;
 }
 
+
 uint32_t
 read_magic(FILE *obj_file, int offset)
 {
@@ -195,26 +219,27 @@ read_magic(FILE *obj_file, int offset)
   return magic;
 }
 
-void
-dump_segments(FILE *obj_file)
+
+int
+has_macho_segments(FILE *obj_file)
 {
   uint32_t magic = read_magic(obj_file, 0);
   int is_64 = is_magic_64(magic);
   int is_swap = should_swap_bytes(magic);
-  dump_mach_header(obj_file, 0, is_64, is_swap);
+  return has_macho_header(obj_file, 0, is_64, is_swap);
 }
+
 
 int
-is_dgsh_program(const char *path)
+is_macho_dgsh_program(const char *path)
 {
   FILE *obj_file = fopen(path, "rb");
-  dump_segments(obj_file);
+  int r = has_macho_segments(obj_file);
   fclose(obj_file);
-
-  return 0;
+  return r;
 }
-
 #else
+
 
 /*
  * Return true if the provided ELF data contain a DGSH note section
@@ -252,6 +277,42 @@ has_dgsh_section_64(Elf64_Shdr *shdr, char *strTab, int shNum, uint8_t *data)
   }
   return 0;
 }
+
+
+/* Return true if the ELF program pointed by data is dgsh-compatible */
+static int
+is_elf_dgsh_program(void *data)
+{
+  Elf32_Ehdr *elf;
+  char *strtab;
+  int arch;
+
+  elf = (Elf32_Ehdr *)data;
+
+  /* Check ELF magic number */
+  if (memcmp(elf->e_ident, ELFMAG, SELFMAG) != 0)
+    return 0;
+
+  arch = elf->e_ident[EI_CLASS];
+  if (arch == 1)	/* 32 bit */
+    {
+      Elf32_Shdr *shdr;
+      shdr = (Elf32_Shdr *)(data + elf->e_shoff);
+      strtab = (char *)(data + shdr[elf->e_shstrndx].sh_offset);
+      return has_dgsh_section_32(shdr, strtab, elf->e_shnum, (uint8_t*)data);
+    }
+  else if (arch == 2)	/* 64 bit */
+    {
+      Elf64_Ehdr *elf64 = (Elf64_Ehdr *)elf;
+      Elf64_Shdr *shdr;
+      shdr = (Elf64_Shdr *)(data + elf64->e_shoff);
+      strtab = (char *)(data + shdr[elf64->e_shstrndx].sh_offset);
+      return has_dgsh_section_64(shdr, strtab, elf64->e_shnum, (uint8_t*)data);
+    }
+  else
+    return 0;
+}
+#endif /* __APPLE__ */
 
 /*
  * Return the position of string needle in the first line of the
@@ -298,48 +359,15 @@ is_script_dgsh_program(void *data, size_t len)
 	  is_magic_script_dgsh_program(data, len));
 }
 
-/* Return true if the ELF program pointed by data is dgsh-compatible */
-static int
-is_elf_dgsh_program(void *data)
-{
-  Elf32_Ehdr *elf;
-  char *strtab;
-  int arch;
-
-  elf = (Elf32_Ehdr *)data;
-
-  /* Check ELF magic number */
-  if (memcmp(elf->e_ident, ELFMAG, SELFMAG) != 0)
-    return 0;
-
-  arch = elf->e_ident[EI_CLASS];
-  if (arch == 1)	/* 32 bit */
-    {
-      Elf32_Shdr *shdr;
-      shdr = (Elf32_Shdr *)(data + elf->e_shoff);
-      strtab = (char *)(data + shdr[elf->e_shstrndx].sh_offset);
-      return has_dgsh_section_32(shdr, strtab, elf->e_shnum, (uint8_t*)data);
-    }
-  else if (arch == 2)	/* 64 bit */
-    {
-      Elf64_Ehdr *elf64 = (Elf64_Ehdr *)elf;
-      Elf64_Shdr *shdr;
-      shdr = (Elf64_Shdr *)(data + elf64->e_shoff);
-      strtab = (char *)(data + shdr[elf64->e_shstrndx].sh_offset);
-      return has_dgsh_section_64(shdr, strtab, elf64->e_shnum, (uint8_t*)data);
-    }
-  else
-    return 0;
-}
 
 int
 is_dgsh_program(const char *path)
 {
   void *data;
-  Elf32_Ehdr *elf;
   int fd;
   int r;
   off_t file_size;
+
 
   fd = open(path, O_RDONLY);
   if (fd == -1)
@@ -352,11 +380,14 @@ is_dgsh_program(const char *path)
   if (memcmp(data, "#!", 2) == 0)
     r = is_script_dgsh_program(data, file_size);
   else
+#if __APPLE__
+    r = is_macho_dgsh_program(path);
+#else
     r = is_elf_dgsh_program(data);
+#endif
   munmap(data, file_size);
   return r;
 }
-#endif /* __APPLE__ */
 
 
 #ifdef DGSH_COMPAT
