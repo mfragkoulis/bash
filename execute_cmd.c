@@ -4273,7 +4273,11 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 	              dgsh_in = 1;
                       func_dgsh_io[executing_function-1]->pipe_in = 0;
 		    }
-		  if (dgsh_in > 0)
+		  /* Inherit pipes in scripts only at dgsh pipelines, not standalone commands.
+		   * See issue #103.
+		   * Does not treat dgsh scripts with a sole command in them.
+		   */
+		  if (dgsh_in > 0 && (pipe_out > 0 || executing_function > 0))
 		    pipe_in = INHERITED_PIPE;
 		}
 	    }
@@ -4288,7 +4292,11 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 	              dgsh_out = 1;
                       func_dgsh_io[executing_function-1]->pipe_out = 0;
 		    }
-		  if (dgsh_out > 0)
+		  /* Inherit pipes in scripts only in dgsh pipelines.
+		   * See issue #103.
+		   * Does not treat dgsh scripts with a sole command in them.
+		   */
+		  if (dgsh_out > 0 && (pipe_in > 0 || executing_function > 0))
 		    pipe_out = INHERITED_PIPE;
 		}
 	    }
