@@ -4203,7 +4203,7 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 		  pipe_in, pipe_out, async);
   WORD_LIST *words, *lastword;
   char *command_line, *lastarg, *temp;
-  int first_word_quoted, result, builtin_is_special, already_forked, dofork;
+  int first_word_quoted, result, builtin_is_special, already_forked, dofork, dopipe;
   pid_t old_last_async_pid;
   sh_builtin_func_t *builtin;
   SHELL_VAR *func;
@@ -4308,6 +4308,9 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
      should not. */
   dofork = pipe_in != NO_PIPE || pipe_out != NO_PIPE || async;
 
+  /* dgsh is concerned with pipelines only; async should be handled by bash. */
+  dopipe = pipe_in != NO_PIPE || pipe_out != NO_PIPE;
+
   /* Something like `%2 &' should restart job 2 in the background, not cause
      the shell to fork here. */
   if (dofork && pipe_in == NO_PIPE && pipe_out == NO_PIPE &&
@@ -4316,11 +4319,11 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
 	(simple_command->words->word->word[0] == '%'))
     dofork = 0;
 
-  DPRINTF(4, "dofork?: %d\n", dofork);
+  DPRINTF(4, "dopipe?: %d, dofork?: %d\n", dopipe, dofork);
   if (dofork)
     {
 #if defined (DGSH)
-      if (dgsh)
+      if (dgsh && dopipe)
         {
 	  DPRINTF(4, "for simple command pipe_in: %d, pipe_out: %d, dgsh_in: %d, dgsh_out: %d, executing_function: %d", pipe_in, pipe_out, dgsh_in,
 			  dgsh_out, executing_function);
@@ -4458,7 +4461,7 @@ execute_simple_command (simple_command, pipe_in, pipe_out, async, fds_to_close)
     words = copy_word_list (simple_command->words);
 
 #if defined (DGSH)
-      if (dgsh && dofork)
+      if (dgsh && dopipe)
         {
           ELEMENT dgsh_wrap_el;
 	  char *command_pathname;
